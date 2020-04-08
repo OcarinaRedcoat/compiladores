@@ -62,7 +62,7 @@ int yyerror(char *s);
 <ZONE>"stop"                  													ECHO;
 <ZONE>"return"                													ECHO;
 
-<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	printf("---");ECHO; 
+<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO; 
 
 <ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
 <ZONE>\" 			                                          ECHO; BEGIN STR; 
@@ -76,7 +76,7 @@ int yyerror(char *s);
 <STR>\\. 			                                          ;
 <STR>[^"]		                                            ECHO;
 
-<ZONE>[A-Za-z][A-Za-z0-9_]*	  													printf("||");ECHO;
+<ZONE>[A-Za-z][A-Za-z0-9_]*	  													ECHO;
 <ZONE>[\#\[\]\(\)\;\:\!\,]	  													ECHO;
 
 <ZONE>0[0-7]+			            													printf("%ld", strtol(yytext+1, 0, 0));
@@ -86,7 +86,7 @@ int yyerror(char *s);
 
 <ZONE>[ \t\n\r]+	            													ECHO; /* ignore whitespace */ 
  
-<ZONE>.                       													printf("~");	 
+<ZONE>.                       													;	 
 
 .|\n								         														;//	yyerror("Unknown character"); 
 %% 
