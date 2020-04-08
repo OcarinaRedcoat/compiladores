@@ -1,6 +1,7 @@
 program start
+			"olá pessoal!\w"!
+			""!
 			"olá pessoal!\n"!
-			"olá pessoal!\r"!
 			"olá pessoal!\t"!
 			"olá pessoal!\""!
  			"olá pessoal!\\"! 

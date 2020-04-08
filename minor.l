@@ -5,28 +5,25 @@
 /*#include "y.tab.h"*/
 char *dupstr(const char *s);
 int yyerror(char *s);
-int octal(char *);
-
-
 %}
-%x COM ZONE STR
+%x COM ZONE STR CHR
 %%
 
-<ZONE>"$$".*                  ;/* one line comment*/
-<ZONE>"$"                     BEGIN COM;/* multi line commment */
+<ZONE>"$$".*                  													;/* one line comment*/
+<ZONE>"$"                     													BEGIN COM;/* multi line commment */
 
-<COM>"$"    			            BEGIN ZONE;
-<COM>.|\n   			            ;
+<COM>"$"    			            													BEGIN ZONE;
+<COM>.|\n   			            													;
 
-<ZONE>"-"                     ECHO;
+<ZONE>"-"                     													ECHO;
 <ZONE>"+"                     													ECHO;
-<ZONE>"*"                     ECHO;
-<ZONE>"/"                     ECHO;
-<ZONE>"%"                     ECHO;
-<ZONE>"^"                     ECHO;
-<ZONE>":="                    ECHO;
-<ZONE>"<"                     ECHO;
-<ZONE>">"                     ECHO;
+<ZONE>"*"                     													ECHO;
+<ZONE>"/"                     													ECHO;
+<ZONE>"%"                     													ECHO;
+<ZONE>"^"                     													ECHO;
+<ZONE>":="                    													ECHO;
+<ZONE>"<"                    	 													ECHO;
+<ZONE>">"                     													ECHO;
 <ZONE>"="                     													ECHO;
 <ZONE>">="                    													ECHO;
 <ZONE>"<="                    													ECHO;
@@ -63,53 +60,36 @@ int octal(char *);
 <ZONE>"done"                  													ECHO;
 <ZONE>"repeat"                													ECHO;
 <ZONE>"stop"                  													ECHO;
-<ZONE>"return"                													ECHO;/*
+<ZONE>"return"                													ECHO;
 
-<ZONE>\'([^\\']|\\[\\nrt']|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO;*/
-<ZONE>\"([^\\"]|\\.)\"																	REJECT;//yylval.s = malloc(yyleng); *yylval.s = 0; REJECT;
-<ZONE>\"																								ECHO; BEGIN STR; 
-<STR>\"																									ECHO; BEGIN ZONE; // return STRING;
-<STR>\\n																								ECHO; //strcat(yylval.s, "\n");
-<STR>\\r																								ECHO;
-<STR>\\t																								ECHO; //strcat(yylval.s, "\t");
-<STR>\\[\\\"]																							ECHO; //strcat(yylval.s, yytext+1);
-<STR>\\[0-9a-fA-F][0-9a-fA-F]?													ECHO;
-<STR>\\.																								; //yyerror("invalid escape sequence in string");
-<STR>.|\n																								ECHO; //strcat(yylval.s, yytext);
+<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	printf("--");ECHO; 
 
-<ZONE>[A-Za-z][A-Za-z0-9_]*	  													ECHO;
+<ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
+<ZONE>\" 			                                          ECHO; BEGIN STR; 
+<STR>\"	 			                                          ECHO; BEGIN ZONE; // return STRING;
+<STR>\\n 			                                          printf("\n"); //strcat(yylval.s, "\n");
+<STR>\\r 			                                          printf("\r");
+<STR>\\t 			                                          printf("\t"); //strcat(yylval.s, "\t");
+<STR>\\\" 		                                          printf("\""); //strcat(yylval.s, yytext+1);
+<STR>\\\\			                                          printf("\\");
+<STR>\\[0-9a-fA-F][0-9a-fA-F]? 	                        ECHO;
+<STR>\\. 			                                          ; //yyerror("invalid escape sequence in string");
+<STR>[^"]		                                            ECHO; //strcat(yylval.s, yytext);
+
+<ZONE>[A-Za-z][A-Za-z0-9_]*	  													printf("||");ECHO;
 <ZONE>[\#\[\]\(\)\;\:\!\,]	  													ECHO;
 
+<ZONE>0[0-7]+			            													printf("%ld", strtol(yytext+1, 0, 0));
+<ZONE>[0-9]+			            													printf("%ld", strtol(yytext, 0, 10)); 
+<ZONE>0b[01]+			            													printf("%ld", strtol(yytext+2, 0, 2));
+<ZONE>0x[0-9a-fA-F]+          													printf("%ld", strtol(yytext+2,0, 16));
 
-<ZONE>0[0-7]+			            printf("%d", octal(yytext));
-<ZONE>[0-9]+			            printf("%ld", strtol(yytext, 0, 10)); 
-<ZONE>0b[01]+			            printf("%ld", strtol(yytext+2, 0, 2));
-<ZONE>0x[0-9a-fA-F]+          printf("%ld", strtol(yytext+2,0, 16));
-
-<ZONE>[ \t\n\r]+	            ECHO; /* ignore whitespace */ 
+<ZONE>[ \t\n\r]+	            													ECHO; /* ignore whitespace */ 
  
-<ZONE>.                       ; 
+<ZONE>.                       													printf("~");	 
 
-.|\n								          ;//	yyerror("Unknown character"); 
+.|\n								         														;//	yyerror("Unknown character"); 
 %% 
-
-int octal(char *s)  
-{
-  puts("------");
-  int i, a = 0, b = 0;
-
-  for (i = 0; i < strlen(s); i++) {
-    if (s[i] < '0' || s[i] > '9') break;
-    b = b * 8 + s[i] - '0';
-    if (b < a) {
-      printf("octal overflow");
-      break;
-    }
-    a = b;
-  }
-  return a;
-}
-
 
 int main() {return yylex();}
 int yywrap() {return 1;}

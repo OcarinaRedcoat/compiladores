@@ -1,0 +1,4 @@
+program start
+		'sd'  'a' '\n' '\t' '\r' '\'' '\\'!
+end
+
