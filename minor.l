@@ -62,19 +62,19 @@ int yyerror(char *s);
 <ZONE>"stop"                  													ECHO;
 <ZONE>"return"                													ECHO;
 
-<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	printf("--");ECHO; 
+<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	printf("---");ECHO; 
 
 <ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
 <ZONE>\" 			                                          ECHO; BEGIN STR; 
-<STR>\"	 			                                          ECHO; BEGIN ZONE; // return STRING;
-<STR>\\n 			                                          printf("\n"); //strcat(yylval.s, "\n");
+<STR>\"	 			                                          ECHO; BEGIN ZONE;
+<STR>\\n 			                                          printf("\n");
 <STR>\\r 			                                          printf("\r");
-<STR>\\t 			                                          printf("\t"); //strcat(yylval.s, "\t");
-<STR>\\\" 		                                          printf("\""); //strcat(yylval.s, yytext+1);
+<STR>\\t 			                                          printf("\t");
+<STR>\\\" 		                                          printf("\"");
 <STR>\\\\			                                          printf("\\");
 <STR>\\[0-9a-fA-F][0-9a-fA-F]? 	                        ECHO;
-<STR>\\. 			                                          ; //yyerror("invalid escape sequence in string");
-<STR>[^"]		                                            ECHO; //strcat(yylval.s, yytext);
+<STR>\\. 			                                          ;
+<STR>[^"]		                                            ECHO;
 
 <ZONE>[A-Za-z][A-Za-z0-9_]*	  													printf("||");ECHO;
 <ZONE>[\#\[\]\(\)\;\:\!\,]	  													ECHO;
