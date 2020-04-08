@@ -1,0 +1,11 @@
+program start
+			"olá pessoal!\n"!
+			"olá pessoal!\r"!
+			"olá pessoal!\t"!
+			"olá pessoal!\""!
+ 			"olá pessoal!\\"! 
+			"olá pessoal!\A"!
+			"olá pessoal!\0a"!
+			"$olá pessoal!$\n"!
+			"olá $$pessoal!\n"!
+end
