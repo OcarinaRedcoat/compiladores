@@ -6,7 +6,7 @@
 char *dupstr(const char *s);
 int yyerror(char *s);
 %}
-%x COM ZONE STR CHR
+%x COM ZONE STR CHR CHRERROR
 %%
 
 <ZONE>"$$".*                  													;/* one line comment*/
@@ -60,9 +60,18 @@ int yyerror(char *s);
 <ZONE>"done"                  													ECHO;
 <ZONE>"repeat"                													ECHO;
 <ZONE>"stop"                  													ECHO;
-<ZONE>"return"                													ECHO;
+<ZONE>"return"                													ECHO;/*
 
-<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO; 
+<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO;*/ 
+
+<ZONE>\'																								BEGIN CHR;
+<CHR>\\[nrt'\\]\'																				printf("'%s", yytext);BEGIN ZONE;
+<CHR>\\[0-9a-fA-F][0-9a-fA-F]\'													printf("'%s", yytext);BEGIN ZONE;
+<CHR>[^\\']																						printf("'WHAZA %s'", yytext);BEGIN ZONE;																									
+<CHR>.																									printf("erro");
+
+<CHRERROR>\'																						BEGIN ZONE;
+<CHRERROR>.																							printf("error");
 
 <ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
 <ZONE>\" 			                                          ECHO; BEGIN STR; 
