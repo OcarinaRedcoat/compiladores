@@ -5,6 +5,7 @@
 /*#include "y.tab.h"*/
 char *dupstr(const char *s);
 int yyerror(char *s);
+int in /*in string or chr*/
 %}
 %x COM ZONE STR CHR CHRERROR
 %%
@@ -15,92 +16,86 @@ int yyerror(char *s);
 <COM>"$"    			            													BEGIN ZONE;
 <COM>.|\n   			            													;
 
-<ZONE>"-"                     													ECHO;
-<ZONE>"+"                     													ECHO;
-<ZONE>"*"                     													ECHO;
-<ZONE>"/"                     													ECHO;
-<ZONE>"%"                     													ECHO;
-<ZONE>"^"                     													ECHO;
-<ZONE>":="                    													ECHO;
-<ZONE>"<"                    	 													ECHO;
-<ZONE>">"                     													ECHO;
-<ZONE>"="                     													ECHO;
-<ZONE>">="                    													ECHO;
-<ZONE>"<="                    													ECHO;
-<ZONE>"~="                    													ECHO;
-<ZONE>"|"                     													ECHO;
-<ZONE>"&"                     													ECHO;
-<ZONE>"~"                     													ECHO;
-<ZONE>"?"                     													ECHO;
+<ZONE>":="                   														return ATR;	
+<ZONE>">="                    													return GE;
+<ZONE>"<="                    													return LE;
+<ZONE>"~="                    													return NE;
 
-<ZONE>"while" 	              													ECHO;
-<ZONE>"if"			              													ECHO;
-<ZONE>"else"		              													ECHO;
-<ZONE>"print" 	              													ECHO;
-<ZONE>"read"		              													ECHO;
-"program"	  			            													BEGIN ZONE; 		ECHO;
-<ZONE>"end"			 	           	 													BEGIN INITIAL;  ECHO;
-"module"    			            													BEGIN ZONE;		  ECHO;
-<ZONE>"start"                 													ECHO;
-<ZONE>"void"                  													ECHO;
-<ZONE>"const"                 													ECHO;
-<ZONE>"number"                													ECHO;
-<ZONE>"array"                 													ECHO;
-<ZONE>"string"               		 												ECHO;
-<ZONE>"function"              													ECHO;
-<ZONE>"public"                													ECHO;
-<ZONE>"foward"                													ECHO;
-<ZONE>"then"                 	 													ECHO;
-<ZONE>"elif"                  													ECHO;
-<ZONE>"fi"                    													ECHO;
-<ZONE>"for"                   													ECHO;
-<ZONE>"until"                 													ECHO;
-<ZONE>"step"                  													ECHO;
-<ZONE>"do"                    													ECHO;
-<ZONE>"done"                  													ECHO;
-<ZONE>"repeat"                													ECHO;
-<ZONE>"stop"                  													ECHO;
-<ZONE>"return"                													ECHO;/*
+
+
+$"program"	  			            													BEGIN ZONE; 		return PROGRAM;
+$"module"    			            													BEGIN ZONE;		 	return MODULE;
+<ZONE>"start"                 													return START;
+<ZONE>$"end"			 	           	 													BEGIN INITIAL;  return END;
+<ZONE>"void"                  													return VOID;
+<ZONE>"const"                 													return CONST;
+<ZONE>"number"                													return NUMBER;
+<ZONE>"array"                 													return ARRAY;
+<ZONE>"string"               		 												return STRING;
+<ZONE>"function"              													return FUNCTION;
+<ZONE>"public"                													return PUBLIC;
+<ZONE>"foward"                													return FOWARD;
+<ZONE>"if"			              													return IF;
+<ZONE>"then"                 	 													return THEN;
+<ZONE>"else"		              													return ELSE;
+<ZONE>"elif"                  													return ELIF;
+<ZONE>"fi"                    													return FI;
+<ZONE>"for"                   													return FOR;
+<ZONE>"until"                 													return UNTIL;
+<ZONE>"step"                  													return STEP;
+<ZONE>"do"                    													return DO;
+<ZONE>"done"                  													return DONE;
+<ZONE>"repeat"                													return REPEAT;
+<ZONE>"stop"                  													return STOP;
+<ZONE>"return"                													return RETURN;/*
+
 
 <ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO;*/ 
 
 <ZONE>\'																								BEGIN CHR;
-<CHR>\\[nrt'\\]\'																				printf("'%s", yytext);BEGIN ZONE;
+<CHR>\\n\'																							BEGIN ZONE: return '\n':							
+<CHR>\\r\'																							BEGIN ZONE: return '\r':
+<CHR>\\t\'																							BEGIN ZONE: return '\t':
+<CHR>\\'\'																							BEGIN ZONE: return '\'':
+<CHR>\\\\'																							BEGIN ZONE: return '\\':/*
+<CHR>\\[nrt'\\]\'																				printf("'%s", yytext);BEGIN ZONE;*/
 <CHR>\\[0-9a-fA-F][0-9a-fA-F]\'													printf("'%s", yytext);BEGIN ZONE;
-<CHR>[^\\']																						printf("'WHAZA %s'", yytext);BEGIN ZONE;																									
-<CHR>.																									printf("erro");
+<CHR>[^\\']																							BEGIN ZONE; return *yytext;											
+<CHR>.																									BEGIN CHRERROR; yyerror("char not valid");
 
 <CHRERROR>\'																						BEGIN ZONE;
-<CHRERROR>.																							printf("error");
+<CHRERROR>.																							;
 
-<ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
-<ZONE>\" 			                                          ECHO; BEGIN STR; 
-<STR>\"	 			                                          ECHO; BEGIN ZONE;
-<STR>\\n 			                                          printf("\n");
-<STR>\\r 			                                          printf("\r");
-<STR>\\t 			                                          printf("\t");
-<STR>\\\" 		                                          printf("\"");
-<STR>\\\\			                                          printf("\\");
-<STR>\\[0-9a-fA-F][0-9a-fA-F]? 	                        ECHO;
-<STR>\\. 			                                          ;
-<STR>[^"]		                                            ECHO;
+<ZONE>\"([^\\"]|\\.)\" 	                                yylval.s = malloc(yyleng); *yylval.s = 0; in = 1; REJECT;
+<ZONE>\" 			                                         	if(in) BEGIN STR; else {yyerror("unterminated string"); return 0;} 
+<STR>\"	 			                                          BEGIN ZONE; return STR;
+<STR>\\n 			                                          strcat(yylval.s, "\n"); 
+<STR>\\r 			                                          strcat(yylval.s, "\r"); 
+<STR>\\t 			                                     		  strcat(yylval.s, "\t"); 
+<STR>\\\" 		                                          strcat(yylval.s, "\""); 
+<STR>\\\\			                                          strcat(yylval.s, "\\"); 
+<STR>\\[0-9a-fA-F][0-9a-fA-F]? 	                        { char s[2]; s[1] = 0; s[0] = strtol(yytext+1,0,16); strcat(yylval.s, s); }
+<STR>\\. 			                                          yyerror("invalid escape sequence in string");     
+<STR>[^"]		                                            strcat(yylval.s, yytext); 
 
-<ZONE>[A-Za-z][A-Za-z0-9_]*	  													ECHO;
-<ZONE>[\#\[\]\(\)\;\:\!\,]	  													ECHO;
+<ZONE>[A-Za-z][A-Za-z0-9_]*	  													yylval.s = strdup(yytext); return ID;
+<ZONE>[\#\[\]\(\)\;\:\!\,]	  													return *yytext;
+<ZONE>[\-\+\*\/\%\^\|\~\&\?\=\<\>]											return *yytext:	
+<ZONE>0[0-7]+			            													errno = 0; yylval.i = strtol(yytext+1, 0, 8); if (errno == ERANGE) yyerror("overflow in octal");
+<ZONE>[0-9]+			            													errno = 0; yylval.i = strtol(yytext, 0, 10); if (errno == ERANGE) yyerror("overflow in octal");printf("%ld", strtol(yytext, 0, 10)); 
+<ZONE>0b[01]+			            													errno = 0; yylval.i = strtol(yytext+2, 0, 2); if (errno == ERANGE) yyerror("overflow in octal");rintf("%ld", strtol(yytext+2, 0, 2));
+<ZONE>0x[0-9a-fA-F]+          													errno = 0; yylval.i = strtol(yytext+2, 0, 16); if (errno == ERANGE) yyerror("overflow in octal");
 
-<ZONE>0[0-7]+			            													printf("%ld", strtol(yytext+1, 0, 0));
-<ZONE>[0-9]+			            													printf("%ld", strtol(yytext, 0, 10)); 
-<ZONE>0b[01]+			            													printf("%ld", strtol(yytext+2, 0, 2));
-<ZONE>0x[0-9a-fA-F]+          													printf("%ld", strtol(yytext+2,0, 16));
-
-<ZONE>[ \t\n\r]+	            													ECHO; /* ignore whitespace */ 
+<ZONE>[ \t\n\r]+	            													; /* ignore whitespace */ 
  
-<ZONE>.                       													;	 
+<ZONE>.                       													yyerror("Unknown character"); 	 
 
 .|\n								         														;//	yyerror("Unknown character"); 
 %% 
 
 int main() {return yylex();}
-int yywrap() {return 1;}
-
+int yywrap(void) {
+  if (YYSTATE == COM) yyerror("unterminated comment");
+  return 1;
+}
 char *getyytext() { return yytext; }
