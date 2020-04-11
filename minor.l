@@ -23,10 +23,10 @@ int in /*in string or chr*/
 
 
 
-$"program"	  			            													BEGIN ZONE; 		return PROGRAM;
-$"module"    			            													BEGIN ZONE;		 	return MODULE;
+^"program"	  			            												BEGIN ZONE; 		return PROGRAM;
+^"module"    			            													BEGIN ZONE;		 	return MODULE;
 <ZONE>"start"                 													return START;
-<ZONE>$"end"			 	           	 													BEGIN INITIAL;  return END;
+<ZONE>^"end"			 	           	 												BEGIN INITIAL;  return END;
 <ZONE>"void"                  													return VOID;
 <ZONE>"const"                 													return CONST;
 <ZONE>"number"                													return NUMBER;
@@ -60,7 +60,7 @@ $"module"    			            													BEGIN ZONE;		 	return MODULE;
 <CHR>\\\\'																							BEGIN ZONE: return '\\':/*
 <CHR>\\[nrt'\\]\'																				printf("'%s", yytext);BEGIN ZONE;*/
 <CHR>\\[0-9a-fA-F][0-9a-fA-F]\'													printf("'%s", yytext);BEGIN ZONE;
-<CHR>[^\\']																							BEGIN ZONE; return *yytext;											
+<CHR>[^\\']\'																						BEGIN ZONE; return *yytext;											
 <CHR>.																									BEGIN CHRERROR; yyerror("char not valid");
 
 <CHRERROR>\'																						BEGIN ZONE;
