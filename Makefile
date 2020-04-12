@@ -1,5 +1,5 @@
-LANG=simple
-EXT=spl# file extension: .$(EXT)
+LANG=minor
+EXT=min# file extension: .$(EXT)
 LIB=lib# compiler library directory
 UTIL=util# compiler library: lib$(LIB).a
 RUN=run# runtime directory
@@ -12,10 +12,10 @@ LD=ld -m elf_i386
 
 .SUFFIXES: .asm $(EXT)
 
-$(LANG): gram.y scan.l code.brg
+$(LANG): minor.y minor.l # code.brg
 	make -C $(LIB)
-	byacc -dv gram.y
-	flex -dl scan.l
+	byacc -dv minor.y
+	flex -dl minor.l
 	pburg -T code.brg
 	$(LINK.c) -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -l$(UTIL)
 	make -C $(RUN)

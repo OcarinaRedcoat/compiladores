@@ -19,24 +19,25 @@ int lbl;
 };
 
 %token <i> INT
-%token <s> ID STRING
+%token <s> ID STRING CHR
 
-%token PROGRAM MODULE START END VOID CONST NUMBER ARRAY STRING FUNCTION PUBLIC
+%token PROGRAM MODULE START END VOID CONST NUMBER ARRAY FUNCTION PUBLIC
 %token FOWARD IF THEN ELSE ELIF FI FOR UNTIL STEP DO DONE REPEAT STOP RETURN
 
 %nonassoc IFX
 %nonassoc ELSE
 
 %right ATR
-
-
-%left GE LE NE '>' '<'
-%left '+' '-'
+%left '|' 
+%left '&'
+%left '~' 
+%left NE '=' 
+%left '<' '>' GE LE
+%left  '+' '-' 
 %left '*' '/' '%'
-%nonassoc UMINUS
-
-%type <n> stmt expr list
-
+%right '^'
+%nonassoc '?' UMINUS  //'&'
+%left '(' ')' '[' ']'
 
 %%
 
@@ -63,23 +64,28 @@ decls  : decl
 decl   : 
 		   | func
 		   | qual var
-		   | qual var ATR lit
-		   |  qual CONST var
-		   | qual CONST var ATR lit
+		   | qual var ATR litr
+		   | qual CONST var
+		   | qual CONST var ATR litr
 		   ;	
 
 /* funcao */
-func   : FUNCTION qual type	ID DONE 
+func   : FUNCTION type	ID DONE 
+		   | FUNCTION VOID ID DO body
+		   | FUNCTION type	ID vars  DONE
+		   | FUNCTION type	ID vars  DO body
+		   | FUNCTION VOID	ID vars  DONE
+		   | FUNCTION VOID	ID vars  DO body
+		   | FUNCTION qual type	ID DONE 
 		   | FUNCTION qual VOID ID DO body
 		   | FUNCTION qual type	ID vars  DONE
 		   | FUNCTION qual type	ID vars  DO body
 		   | FUNCTION qual VOID	ID vars  DONE
 		   | FUNCTION qual VOID	ID vars  DO body
-		   ;
+			 ; 
 
 /* existencia ou nao de qualificador */
-qual   : 
-		   | PUBLIC
+qual   : PUBLIC
 		   | FOWARD
 		   ;
 
@@ -90,7 +96,7 @@ vars   : var
 
 /* 1 variavel */
 var    : type ID
-		   | type ID '[' INT ']'
+		   | ARRAY ID '[' INT ']'
 		   ;
 
 /* tipo */
@@ -109,16 +115,23 @@ instrs : instr
 			 | instrs instr
 			 ; 
 
-body   : varc instrs 
+body   : 
+			 | varc
+			 | instrs
+			 | varc instrs 
 		   ;
 
 /* 1 literal  */
 lit    : INT
-			 | CHT
-			 | STR
+			 | CHR
+			 | STRING
 			 ; 
 
-/* 1 ou mais literais*/
+litr   : lits
+			 | litsc
+			 ;
+
+/* 0 ou mais literais*/
 lits   : lit
 			 | lits lit
 			 ;
@@ -129,7 +142,8 @@ litsc  : lit
 			 ;	
 
 /* 1 instrucao */
-instr  : IF expr THEN instrs elifs else FI
+instr  : 
+			 | IF expr THEN instrs elifs else FI
 			 | FOR expr UNTIL expr STEP expr DO instrs DONE
 			 | expr ';'
 			 | expr '!'
@@ -137,7 +151,7 @@ instr  : IF expr THEN instrs elifs else FI
 			 | STOP
 			 | RETURN
 			 | RETURN expr
-			 | lv # expr
+			 | lv '#' expr ';'
 			 ;
 
 /* 0 ou mais elif  */
@@ -153,13 +167,48 @@ elif   : ELIF expr THEN instrs
 /* 0 ou 1 else  */
 else   : 
 			 | ELSE instrs
-			 ; 
-
-expr   : 
 			 ;
 
+throng : ARRAY lv
+			 | ARRAY lv ATR litsc 
+			 ;
 
+expr   : lv
+			 | lv ATR expr
+			 | INT
+			 | STRING
+			 | throng
+			 | CHR
+			 | '-' expr %prec UMINUS
+			 | '~' expr %prec UMINUS
+			 | '&' lv %prec UMINUS
+			 | '!' expr %prec UMINUS
+			 | expr '+' expr
+			 | expr '-' expr
+			 | expr '*' expr
+			 | expr '%' expr
+			 | expr GE expr
+			 | expr LE expr
+			 | expr '<' expr
+			 | expr '>' expr
+			 | expr '^' expr
+			 | expr '|' expr
+			 | expr '&' expr
+			 | expr NE expr
+			 | expr '=' expr
+			 | '(' expr ')'
+			 | '?' expr
+			 | ID '(' args ')'
+			 | ID '(' ')'
+			 ;
 
+args   : expr
+			 | args ',' expr
+		   ; 
+
+lv     : ID
+			 | ID '[' expr ']'
+			 ;
 
 
 
