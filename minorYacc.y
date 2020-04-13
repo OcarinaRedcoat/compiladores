@@ -26,7 +26,6 @@ int lbl;
 
 %nonassoc IFX
 %nonassoc ELSE
-
 %right ATR
 %left '|' 
 %left '&'
@@ -47,7 +46,7 @@ file   : prog
 		   | mod
 		   ;
 
-prog   : PROGRAM decls START END
+prog   : PROGRAM decls START body END
 		   ;
 
 mod    : MODULE decls END
@@ -125,22 +124,23 @@ literais  	: lit
           	;
 
 body        : vars ';'
-            | instrucoes
-		        | vars ';' instrucoes
+            | instrucao
+		        | vars ';' instrucao
 	          ;
-
+/*
 instrucoes : instrucao
 					 | instrucoes instrucao
            ; 
-
-instrucao  : IF expr  THEN instrucoes elif else
-				   | FOR expr UNTIL expr  STEP expr DO instrucoes DONE
+*/
+instrucao  : IF expr THEN instrucao elifs      %prec IFX
+				   | IF expr THEN instrucao elifs else %prec ELSE
+					 | FOR expr UNTIL expr  STEP expr DO instrucao DONE
 					 | expr ';'
 					 | expr '!'
 					 | REPEAT
 					 | STOP
-					 | RETURN 
-					 | RETURN  expr 
+					 | RETURN expr 
+					 | RETURN
 					 | lv '#' expr
 					 ;
 
@@ -150,11 +150,11 @@ elifs  		 : elif
 			 		 ;
 
 /* 1 elif */
-elif   		 : ELIF THEN instrucoes
+elif   		 : ELIF THEN instrucao
 			     ;
 
 /* 0 ou 1 else  */
-else       : ELSE instrucoes
+else       : ELSE instrucao
   			   ;
 
 throng     : ARRAY lv
@@ -164,7 +164,7 @@ throng     : ARRAY lv
 expr 			 : lv
 					 | lv ATR expr
 					 | INT
-					 | STRING
+					 | STRG
 					 | throng
 					 | CHR
 					 | '-' expr %prec UMINUS
