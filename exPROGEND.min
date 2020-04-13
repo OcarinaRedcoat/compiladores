@@ -1,0 +1,8 @@
+program
+number i;
+number n;
+array v[10] := 12, 23, 34, 45, 56, 67, 78, 89, 90, 99;
+function number fib number n do
+start
+end
+

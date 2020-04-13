@@ -19,9 +19,9 @@ int lbl;
 };
 
 %token <i> INT
-%token <s> ID STRING CHR
+%token <s> ID STRG CHR
 
-%token PROGRAM MODULE START END VOID CONST NUMBER ARRAY FUNCTION PUBLIC
+%token PROGRAM MODULE START END VOID CONST STRING NUMBER ARRAY FUNCTION PUBLIC
 %token FOWARD IF THEN ELSE ELIF FI FOR UNTIL STEP DO DONE REPEAT STOP RETURN
 
 %nonassoc IFX
@@ -43,79 +43,161 @@ int lbl;
 
 	/* GRAMATICA  */
 
-file : prog
-		 | mod
-		 ;
+file   : prog
+		   | mod
+		   ;
 
-prog : PROGRAM decls START END
-		 ;
+prog   : PROGRAM decls START END
+		   ;
 
-mod  : MODULE decls END
-		 ;
+mod    : MODULE decls END
+		   ;
+
 /* 0 ou mais declaracoes */
 decls  : decl
-	   | decls ';' decl
+	   	 | decls ';' decl
        ;
 
 
 /* 0 ou 1 declaracao */
-decl   : 
+decl   :
+		   | func 
        | var
-	   | var ATR literais
-	   | CONST var
-	   | CONST var ATR literais
+	     | var ATR literais
+	     | CONST var
+	     | CONST var ATR literais
        | qual var
-	   | qual var ATR literais
-	   | qual CONST var
-	   | qual CONST var ATR literais
-	   ;	
+	     | qual var ATR literais
+	     | qual CONST var
+	     | qual CONST var ATR literais
+	   	 ;	
 
-qual : PUBLIC
-     | FOWARD
-     ;
+
+/* funcao */
+func   : FUNCTION type	ID DONE 
+		   | FUNCTION VOID ID DO body 
+		   | FUNCTION type	ID vars  DONE
+		   | FUNCTION type	ID vars  DO 
+		   | FUNCTION VOID	ID vars  DONE
+		   | FUNCTION VOID	ID vars  DO 
+		   | FUNCTION qual type	ID DONE 
+		   | FUNCTION qual VOID ID DO 
+		   | FUNCTION qual type	ID vars  DONE
+		   | FUNCTION qual type	ID vars  DO
+		   | FUNCTION qual VOID	ID vars  DONE
+		   | FUNCTION qual VOID	ID vars  DO 
+			 ; 
+
+
+
+
+qual   : PUBLIC
+       | FOWARD
+       ;
 
 /* 1 ou mais variaveis */
-vars : var
-	 | vars ';' var 
-	 ;
+vars 	 : var
+	 	 	 | vars ';' var 
+	     ;
 
 /* 1 variavel */
-var  : type ID
-     | ARRAY ID
-	 | ARRAY ID '[' INT ']'
-	 ;
+var    : type ID
+       | ARRAY ID
+	     | ARRAY ID '[' INT ']'
+	     ;
 
 /* tipo */
-type  : NUMBER
-	  | STRING
-	  ;
+type   : NUMBER
+       | STRING
+	     ;
 
 
 
 /* 1 literal  */
-lit  : INT
-	 | CHR
-	 | STRING
-	 ; 
+lit   : INT
+	    | CHR
+	    | STRING
+	    ; 
 
-literais : lit
-         | literais ',' lit 
-         | literais lit
-         ;
-/*literais : lit
-         | litVir 
-         | litSVir
-         ;
+literais  	: lit
+         		| literais ',' lit 
+         		| literais lit
+          	;
 
+body        : vars ';'
+            | instrucoes
+		        | vars ';' instrucoes
+	          ;
 
-litVir : lit 
-       | litVir ','  lit
-       ;
+instrucoes : instrucao
+					 | instrucoes instrucao
+           ; 
 
-litSVir: lit
-       | litSVir lit
-       ;
-*/
+instrucao  : IF expr  THEN instrucoes elif else
+				   | FOR expr UNTIL expr  STEP expr DO instrucoes DONE
+					 | expr ';'
+					 | expr '!'
+					 | REPEAT
+					 | STOP
+					 | RETURN 
+					 | RETURN  expr 
+					 | lv '#' expr
+					 ;
+
+/* 0 ou mais elif  */
+elifs  		 : elif
+			 		 | elifs elif
+			 		 ;
+
+/* 1 elif */
+elif   		 : ELIF THEN instrucoes
+			     ;
+
+/* 0 ou 1 else  */
+else       : ELSE instrucoes
+  			   ;
+
+throng     : ARRAY lv
+					 | ARRAY lv ATR literais 
+					 ;
+
+expr 			 : lv
+					 | lv ATR expr
+					 | INT
+					 | STRING
+					 | throng
+					 | CHR
+					 | '-' expr %prec UMINUS
+			 		 | '~' expr %prec UMINUS
+			 		 | '&' lv %prec UMINUS
+			 		 | '!' expr %prec UMINUS
+					 | expr '+' expr
+					 | expr '-' expr
+					 | expr '*' expr
+					 | expr '%' expr
+			 		 | expr GE expr
+					 | expr LE expr
+					 | expr '<' expr
+					 | expr '>' expr
+					 | expr '^' expr
+					 | expr '|' expr
+					 | expr '&' expr
+					 | expr NE expr
+					 | expr '=' expr
+					 | '(' expr ')'
+					 | '?' expr 
+					 | ID '(' args ')'
+					 | ID '(' ')'
+				 	 ; 
+
+args       : expr
+					 | args ',' expr
+					 ; 
+
+lv     		 : ID
+			 		 | ID '[' ']'
+			 		 ;
+
 
 %%
 
