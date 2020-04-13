@@ -44,8 +44,8 @@ int lbl;
 	/* GRAMATICA  */
 
 file   : prog
-		   | mod
-		   ;
+	   | mod
+	   ;
 
 /* program */
 prog   : PROGRAM decls  START body END 	//: PROGRAM START body END
@@ -53,12 +53,12 @@ prog   : PROGRAM decls  START body END 	//: PROGRAM START body END
 
 /* module */
 mod    : MODULE decls END
-		   ;
+	   ;
 
 /* 0 ou mais declaracoes */
 decls  : decl
-		   | decls ';' decl
-	     ;
+	   | decls ';' decl
+       ;
 
 /* 0 ou 1 declaracao */
 decl   : 
@@ -91,50 +91,50 @@ qual   : PUBLIC
 
 /* 1 ou mais variaveis */
 vars   : var
-		   | vars ';' var 
-		   ;
+	   | vars ';' var 
+	   ;
 
 /* 1 variavel */
 var    : type ID
-		   | ARRAY ID '[' INT ']'
-		   ;
+	   | ARRAY ID '[' INT ']'
+	   ;
 
 /* tipo */
 type   : NUMBER
-		   | STRING
-		   | ARRAY
-		   ;
+	   | STRING
+	   | ARRAY
+	   ;
 
 /* FIXME */
 varc   : var ';'
-		   | varc var ';'
-		   ;
+	   | varc var ';'
+	   ;
 
 /* 1 ou mais */
 instrs : instr
-			 | instrs instr
-			 ; 
+		 | instrs instr
+		 ; 
 
 body   : 
-			 | varc
-			 | instrs
-			 | varc instrs 
-		   ;
+		 | varc
+		 | instrs
+		 | varc instrs 
+	   ;
 
 /* 1 literal  */
 lit    : INT
-			 | CHR
-			 | STRING
-			 ; 
+		 | CHR
+		 | STRING
+		 ; 
 
 litr   : lits
-			 | litsc
-			 ;
+		 | litsc
+		 ;
 
 /* 0 ou mais literais*/
 lits   : lit
-			 | lits lit
-			 ;
+		 | lits lit
+		 ;
 
 /* 1 ou mais literais separados de virgula */
 litsc  : lit

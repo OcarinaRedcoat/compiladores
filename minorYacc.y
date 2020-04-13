@@ -6,7 +6,7 @@
 /*#include "node.h"*/
 #include "tabid.h"
 
-extern int yylex();
+int yylex();
 /*void evaluate(Node *p);*/
 void yyerror(char *s);
 int lbl;
@@ -47,11 +47,76 @@ file : prog
 		 | mod
 		 ;
 
-prog : PROGRAM END
+prog : PROGRAM decls START END
 		 ;
 
-mod  : MODULE END
+mod  : MODULE decls END
 		 ;
+/* 0 ou mais declaracoes */
+decls  : decl
+	   | decls ';' decl
+       ;
+
+
+/* 0 ou 1 declaracao */
+decl   : 
+       | var
+	   | var ATR literais
+	   | CONST var
+	   | CONST var ATR literais
+       | qual var
+	   | qual var ATR literais
+	   | qual CONST var
+	   | qual CONST var ATR literais
+	   ;	
+
+qual : PUBLIC
+     | FOWARD
+     ;
+
+/* 1 ou mais variaveis */
+vars : var
+	 | vars ';' var 
+	 ;
+
+/* 1 variavel */
+var  : type ID
+     | ARRAY ID
+	 | ARRAY ID '[' INT ']'
+	 ;
+
+/* tipo */
+type  : NUMBER
+	  | STRING
+	  ;
+
+
+
+/* 1 literal  */
+lit  : INT
+	 | CHR
+	 | STRING
+	 ; 
+
+literais : lit
+         | literais ',' lit 
+         | literais lit
+         ;
+/*literais : lit
+         | litVir 
+         | litSVir
+         ;
+
+
+litVir : lit 
+       | litVir ','  lit
+       ;
+
+litSVir: lit
+       | litSVir lit
+       ;
+*/
+
 %%
 
 char **yynames =

@@ -3,8 +3,8 @@
 #include <string.h> 
 /*#include "node.h"*/ 
 #include "y.tab.h"
-char *dupstr(const char *s);
-int yyerror(char *s);
+/*char *dupstr(const char *s);*/
+extern void yyerror(char *s);
 int in; /*in string or chr*/
 %}
 %x COM ZONE STR CHAR CHRERROR
@@ -93,9 +93,7 @@ int in; /*in string or chr*/
 .|\n								         														;
 %% 
 
-int main() {return yylex();}
 int yywrap(void) {
-  if (YYSTATE == COM) yyerror("unterminated comment");
   return 1;
 }
 char *getyytext() { return yytext; }
