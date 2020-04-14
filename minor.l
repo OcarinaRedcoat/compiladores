@@ -5,7 +5,10 @@
 #include "y.tab.h"
 /*char *dupstr(const char *s);*/
 extern void yyerror(char *s);
-int in; /*in string or chr*/
+void checkDup(char *text);
+void checkHex(char *text);
+int in; 
+int inCHR = 0;  /*in string or chr*/
 %}
 %x COM ZONE STR CHAR CHRERROR
 %%
@@ -34,7 +37,7 @@ int in; /*in string or chr*/
 <ZONE>"string"               		 												return STRING;
 <ZONE>"function"              													return FUNCTION;
 <ZONE>"public"                													return PUBLIC;
-<ZONE>"foward"                													return FOWARD;
+<ZONE>"forward"                													return FORWARD;
 <ZONE>"if"			              													return IF;
 <ZONE>"then"                 	 													return THEN;
 <ZONE>"else"		              													return ELSE;
@@ -47,28 +50,21 @@ int in; /*in string or chr*/
 <ZONE>"done"                  													return DONE;
 <ZONE>"repeat"                													return REPEAT;
 <ZONE>"stop"                  													return STOP;
-<ZONE>"return"                													return RETURN;/*
-
-
-<ZONE>\'([^\']|\\[nrt'\\]|\\[0-9a-fA-F][0-9a-fA-F]?)\'	ECHO;*/ 
+<ZONE>"return"                													return RETURN;
 
 <ZONE>[ \t\n\r]+	            													; /* ignore whitespace */ 
 
-<ZONE>\'																								BEGIN CHAR;
-<CHAR>\\n\'																							{BEGIN ZONE; return '\n';}					
-<CHAR>\\r\'																							{BEGIN ZONE; return '\r';}
-<CHAR>\\t\'																							{BEGIN ZONE; return '\t';}
-<CHAR>\\'\'																							{BEGIN ZONE; return '\'';}
-<CHAR>\\\\'																							{BEGIN ZONE; return '\\';}
-<CHAR>\\[nrt'\\]\'																				{printf("'%s", yytext);BEGIN ZONE;}
-<CHAR>\\[0-9a-fA-F][0-9a-fA-F]\'												{printf("'%s", yytext);BEGIN ZONE;}
-<CHAR>[^\\']\'																					{BEGIN ZONE; return *yytext;}											
-<CHAR>.																									{BEGIN CHRERROR; yyerror("char not valid");}
 
-<CHRERROR>\'																						BEGIN ZONE;
-<CHRERROR>.																							;
-
-<ZONE>\"([^\\"]|\\.)\" 	                                {yylval.s = malloc(yyleng); *yylval.s = 0; in = 1; REJECT;}
+<ZONE>\' 																								{BEGIN CHAR; inCHR=1;}
+<CHAR>\'																								{BEGIN ZONE; return CHR;} 
+<CHAR>[^\\']																						{if (inCHR){  strcat(yylval.s, yytext); inCHR = 0; }else {yyerror("char error");}}
+<CHAR>\\\'																							{if (inCHR){ strcat(yylval.s, "\'"); inCHR = 0; }else {yyerror("char error");}}
+<CHAR>\\n																								{if (inCHR){ strcat(yylval.s, "\n"); inCHR = 0; }else {yyerror("char error");}}
+<CHAR>\\r																								{if (inCHR){ strcat(yylval.s, "\r"); inCHR = 0; }else {yyerror("char error");}}
+<CHAR>\\t																								{if (inCHR){ strcat(yylval.s, "\t"); inCHR = 0; }else {yyerror("char error");}}
+<CHAR>\\[0-9a-fA-F][0-9a-fA-F]?													{if (inCHR){ char s[2]; s[1] = 0; s[0] = strtol(yytext+1,0,16); strcat(yylval.s, s); inCHR = 0; } else {yyerror("char error");}}
+ 
+<ZONE>\"([^"\\]|\\(.|\n))*\"	                                {yylval.s = malloc(yyleng); *yylval.s = 0; in = 1; REJECT;}
 <ZONE>\" 			                                         	{if(in) BEGIN STR; else {yyerror("unterminated string"); return 0;}} 
 <STR>\"	 			                                          {BEGIN ZONE; return STRG;}
 <STR>\\n 			                                          strcat(yylval.s, "\n"); 
@@ -92,7 +88,7 @@ int in; /*in string or chr*/
 <ZONE>.                       													yyerror("Unknown character"); 	 
 
 .|\n								         														;
-%% 
+%%
 
 int yywrap(void) {
   return 1;

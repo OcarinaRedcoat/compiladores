@@ -75,7 +75,7 @@ int yyerror(char *s);
 
 <ZONE>\"([^\\"]|\\.)\" 	                                ECHO; REJECT;
 <ZONE>\" 			                                          ECHO; BEGIN STR; 
-<STR>\"	 			                                          ECHO; BEGIN ZONE;
+<STR>\"	 			                                          BEGIN ZONE; ECHO;
 <STR>\\n 			                                          printf("\n");
 <STR>\\r 			                                          printf("\r");
 <STR>\\t 			                                          printf("\t");

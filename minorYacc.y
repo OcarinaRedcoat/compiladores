@@ -22,7 +22,7 @@ int lbl;
 %token <s> ID STRG CHR
 
 %token PROGRAM MODULE START END VOID CONST STRING NUMBER ARRAY FUNCTION PUBLIC
-%token FOWARD IF THEN ELSE ELIF FI FOR UNTIL STEP DO DONE REPEAT STOP RETURN
+%token FORWARD IF THEN ELSE ELIF FI FOR UNTIL STEP DO DONE REPEAT STOP RETURN
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -76,22 +76,22 @@ decl   :
 func   : FUNCTION type	ID DONE 
 		   | FUNCTION VOID ID DO body 
 		   | FUNCTION type	ID vars  DONE
-		   | FUNCTION type	ID vars  DO 
+		   | FUNCTION type	ID vars  DO body 
 		   | FUNCTION VOID	ID vars  DONE
-		   | FUNCTION VOID	ID vars  DO 
+		   | FUNCTION VOID	ID vars  DO body
 		   | FUNCTION qual type	ID DONE 
-		   | FUNCTION qual VOID ID DO 
+		   | FUNCTION qual VOID ID DO body
 		   | FUNCTION qual type	ID vars  DONE
-		   | FUNCTION qual type	ID vars  DO
+		   | FUNCTION qual type	ID vars  DO body
 		   | FUNCTION qual VOID	ID vars  DONE
-		   | FUNCTION qual VOID	ID vars  DO 
+		   | FUNCTION qual VOID	ID vars  DO body
 			 ; 
 
 
 
 
 qual   : PUBLIC
-       | FOWARD
+       | FORWARD
        ;
 
 /* 1 ou mais variaveis */
@@ -101,13 +101,13 @@ vars 	 : var
 
 /* 1 variavel */
 var    : type ID
-       | ARRAY ID
-	     | ARRAY ID '[' INT ']'
+	     | type ID '[' INT ']'
 	     ;
 
 /* tipo */
 type   : NUMBER
        | STRING
+       | ARRAY
 	     ;
 
 
@@ -115,33 +115,41 @@ type   : NUMBER
 /* 1 literal  */
 lit   : INT
 	    | CHR
-	    | STRING
+	    | STRG
 	    ; 
 
-literais  	: lit
-         		| literais ',' lit 
-         		| literais lit
-          	;
+literais		: lit
+						| literais	lit
+						| literais ',' lit
+						;
 
-body        : vars ';'
-            | instrucao
-		        | vars ';' instrucao
-	          ;
-/*
-instrucoes : instrucao
-					 | instrucoes instrucao
-           ; 
-*/
-instrucao  : IF expr THEN instrucao elifs      %prec IFX
-				   | IF expr THEN instrucao elifs else %prec ELSE
-					 | FOR expr UNTIL expr  STEP expr DO instrucao DONE
-					 | expr ';'
-					 | expr '!'
+body        : bloco 
+		        | vars ';' bloco	 
+						;
+
+
+bloco   		: instrucoes blocoEnd
+						;
+
+instrucoes  : 
+						| instrucoes instrucao
+						;					
+
+blocoEnd   : 
 					 | REPEAT
 					 | STOP
 					 | RETURN expr 
 					 | RETURN
-					 | lv '#' expr
+					 ;
+
+instrucao  : IF expr THEN bloco  FI     
+					 | IF expr THEN bloco elifs FI     
+				   | IF expr THEN bloco else FI 
+				   | IF expr THEN bloco elifs else FI 
+					 | FOR expr UNTIL expr  STEP expr DO bloco DONE
+					 | expr ';'
+					 | expr '!'
+					 | lv '#' expr ';'
 					 ;
 
 /* 0 ou mais elif  */
@@ -150,30 +158,23 @@ elifs  		 : elif
 			 		 ;
 
 /* 1 elif */
-elif   		 : ELIF THEN instrucao
+elif   		 : ELIF expr THEN bloco
 			     ;
 
 /* 0 ou 1 else  */
-else       : ELSE instrucao
+else       : ELSE bloco
   			   ;
-
-throng     : ARRAY lv
-					 | ARRAY lv ATR literais 
-					 ;
 
 expr 			 : lv
 					 | lv ATR expr
-					 | INT
-					 | STRG
-					 | throng
-					 | CHR
+					 | lit
 					 | '-' expr %prec UMINUS
 			 		 | '~' expr %prec UMINUS
 			 		 | '&' lv %prec UMINUS
-			 		 | '!' expr %prec UMINUS
 					 | expr '+' expr
 					 | expr '-' expr
 					 | expr '*' expr
+					 | expr '/' expr
 					 | expr '%' expr
 			 		 | expr GE expr
 					 | expr LE expr
@@ -185,9 +186,8 @@ expr 			 : lv
 					 | expr NE expr
 					 | expr '=' expr
 					 | '(' expr ')'
-					 | '?' expr 
+					 | '?'
 					 | ID '(' args ')'
-					 | ID '(' ')'
 				 	 ; 
 
 args       : expr
@@ -195,7 +195,7 @@ args       : expr
 					 ; 
 
 lv     		 : ID
-			 		 | ID '[' ']'
+			 		 | ID '[' expr ']'
 			 		 ;
 
 
