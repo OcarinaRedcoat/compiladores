@@ -1,7 +1,7 @@
 %{ 
 #include <stdlib.h> 
 #include <string.h> 
-/*#include "node.h"*/ 
+#include "node.h" 
 #include "y.tab.h"
 /*char *dupstr(const char *s);*/
 extern void yyerror(char *s);
@@ -80,9 +80,9 @@ int inCHR = 0;  /*in string or chr*/
 <ZONE>[\#\[\]\(\)\;\:\!\,]	  													return *yytext;
 <ZONE>[\-\+\*\/\%\^\|\~\&\?\=\<\>]											return *yytext;
 <ZONE>0[0-7]+			            													{errno = 0; yylval.i = strtol(yytext+1, 0, 8);  if (errno == ERANGE) yyerror("overflow in octal");  return INT;}
-<ZONE>[0-9]+			            													{errno = 0; yylval.i = strtol(yytext, 0, 10);   if (errno == ERANGE) yyerror("overflow in octal");  return INT;}
-<ZONE>0b[01]+			            													{errno = 0; yylval.i = strtol(yytext+2, 0, 2);  if (errno == ERANGE) yyerror("overflow in octal");  return INT;}
-<ZONE>0x[0-9a-fA-F]+          													{errno = 0; yylval.i = strtol(yytext+2, 0, 16); if (errno == ERANGE) yyerror("overflow in octal");  return INT;}
+<ZONE>[0-9]+			            													{errno = 0; yylval.i = strtol(yytext, 0, 10);   if (errno == ERANGE) yyerror("overflow in decimal");  return INT;}
+<ZONE>0b[01]+			            													{errno = 0; yylval.i = strtol(yytext+2, 0, 2);  if (errno == ERANGE) yyerror("overflow in binary");  return INT;}
+<ZONE>0x[0-9a-fA-F]+          													{errno = 0; yylval.i = strtol(yytext+2, 0, 16); if (errno == ERANGE) yyerror("overflow in hexadecimal");  return INT;}
 
  
 <ZONE>.                       													yyerror("Unknown character"); 	 
