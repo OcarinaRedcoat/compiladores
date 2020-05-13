@@ -31,10 +31,117 @@ static char *mkfunc(char *s) {
 	return buf;
 }
 %}
-%term STMT=';'
+%term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
 %include "y.tab.h"
 %%
-file: PROGRAM
+file: PROGRAM(decls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 {}
+file: MODULE(decls)	1 {}
+
+decls: NIL 																																		
+decls: gdecls 1 {}
+
+gdecls: DECL(gdecls, decl) 1 {}
+gdecls: DECL(NIL, decl) 1 {}
+
+decl: VAR(vardecl) 1 {}
+decl: FUNCTION( END(ID , INT ), FARGS(fvars, eqbody)) 1 {}
+decl: FUNCTION( END( ID, INT ), FARGS(NIL, eqbody)) 1 {}
+decl: NIL																																		
+
+fvar: NUMBER( ID, NIL) 1 {}
+fvar: STRING( ID, NIL) 1 {}
+fvar: ARRAY( ID, INTS(INT, NIL)) 1 {}
+
+fvars: ARGS( NIL, fvar) 1 {}
+fvars: ARGS( fvars, fvar) 1 {}
+
+vardecl: NUMBER( ID, eqint) 1 {}
+vardecl: STRING( ID, eqstr) 1 {}
+vardecl: ARRAY( ID, INTS(INT, eqvec)) 1 {}
+
+eqint: NIL 
+eqint: INT 1 {}
+eqint: INT 1 {}
+
+eqstr: NIL 
+eqstr: chars 1 {}
+
+chars: CHARS(NIL, char) 1 {}
+chars: CHARS(chars, char) 1 {}
+
+char: INT 1 {}
+char: CHAR 1 {}
+char: STR 1 {}
+
+eqvec: NIL 
+eqvec: ints 1 {}
+
+ints: INT 1 {}
+ints: INTS(ints, INT) 1 {}
+
+eqbody: NIL 
+eqbody: body 1 {}
+
+main: START(fvars, instrs) 1 {}
+main: START(NIL, instrs) 1 {}
+
+body: START(fvars , STMT(instrs, ret)) 1 {}
+body: START(NIL , STMT(instrs, ret)) 1 {}
+
+ret: RETURN(NIL)  1 {}
+ret: RETURN(expr) 1 {} 
+ret: NIL 
+
+loop: ret	1 {}
+loop: REPEAT 1 {} 
+loop: STOP 1 {} 
+
+block: STMT(instrs, loop) 1 {} 
+
+instrs: NIL 
+instrs: STMT( instrs, instr) 1 {} 
+
+instr: FI( THEN( IF (expr, block), elifs), else) 1 {} 
+instr: FOR( UNTIL( expr, expr), STEP(block, expr)) 1 {} 
+instr: EXCL( expr) 1 {} 
+instr: expr 1 {} 
+instr: CARD( expr, lval) 1 {} 
+
+elifs: NIL 
+elifs: ELIF( elifs, IF( expr, block)) 1 {} 
+
+else: NIL 
+else: block 1 {}
+
+lval: ID 1 {} 
+lval: PARE( expr, ID) 1 {} 
+
+expr: chars 1 {}
+expr: lval 1 {}
+expr: IN 1 {} 
+expr: ADDR( lval) 1 {}
+expr: expr 1 {} 
+expr: ADD( expr, expr) 1 {} 
+expr: SUB( expr, expr) 1 {} 
+expr: MUL( expr, expr) 1 {} 
+expr: DIV( expr, expr) 1 {} 
+expr: MOD( expr, expr) 1 {} 
+expr: POW( expr, expr) 1 {} 
+expr: EQUAL( expr, expr) 1 {} 
+expr: NE( expr, expr) 1 {} 
+expr: GE( expr, expr) 1 {} 
+expr: LE( expr, expr) 1 {} 
+expr: MIN( expr, expr) 1 {} 
+expr: MAX( expr, expr) 1 {} 
+expr: AND( expr, expr) 1 {} 
+expr: OR( expr, expr) 1 {} 
+expr: NOT( expr) 1 {} 
+expr: uminus( expr) 1 {} 
+expr: EQ(expr, lval) 1 {} 
+expr: CURVE(ID, exprs) 1 {} 
+
+exprs: COMMA(expr, NIL) 1 {} 
+exprs: COMMA(expr, exprs) 1 {} 
 %%
 extern char **yynames;
 extern int trace, errors, debugNode;
