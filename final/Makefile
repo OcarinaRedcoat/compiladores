@@ -13,9 +13,9 @@ $(LANG): $(LANG).y $(LANG).l $(LANG).brg
 	make -C lib
 	byacc -dv $(LANG).y
 	flex -l $(LANG).l
-	pburg -T -A  $(LANG).brg
+	pburg -T $(LANG).brg
 #$(LINK.c) -o $(LANG) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -lutil
 	$(CC) $(CFLAGS) -o $(LANG) -I$(LIB) lex.yy.c y.tab.c yyselect.c $(LIB)/*.o 
 clean::
-	rm -f *.o $(LANG) lex.yy.c y.tab.c y.tab.h y.output yyselect.c *.asm *~ *.obj *.exe
-
+	rm -f *.o $(LANG) lex.yy.c y.tab.c y.tab.h y.output yyselect.c *.asm *~ *.obj *.exe 
+	rm -rf *.dSYM

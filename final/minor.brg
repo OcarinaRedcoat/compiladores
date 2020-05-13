@@ -147,7 +147,7 @@ extern char **yynames;
 extern int trace, errors, debugNode;
 void evaluate(Node *p) {
 	if (errors) return;
-	/* if (trace) */ printNode(p, stdout, yynames);
+	if (trace)  printNode(p, stdout, yynames);
 	if (!yyselect(p) && trace) printf("selection successful\n");
 }
 
@@ -159,7 +159,7 @@ static void yytrace(NODEPTR_TYPE p, int eruleno, int cost, int bestcost)
 	if (debugNode) fprintf(stderr, "0x%p:%s matched %s with cost %d vs. %d\n", p, tname, yystring[eruleno], cost, bestcost);
 	if (cost >= MAX_COST && bestcost >= MAX_COST) {
 		fprintf(stderr, "0x%p:%s NO MATCH %s with cost %d vs. %d\n", p, tname, yystring[eruleno], cost, bestcost);
-		printNode(p, stderr, yynames);
+		/*printNode(p, stderr, yynames);*/
 	}
 }
 #endif
