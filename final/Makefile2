@@ -1,0 +1,35 @@
+LANG=minor
+EXT=min# file extension: .$(EXT)
+LIB=lib# compiler library directory
+UTIL=util# compiler library: lib$(LIB).a
+RUN=run# runtime directory
+EXS=exs# examples directory
+CC=gcc
+CFLAGS=-g -DYYDEBUG
+LDLIBS=run/lib$(LANG).a
+AS=nasm -felf32
+LD=ld -m elf_i386
+
+.SUFFIXES: .asm $(EXT)
+
+$(LANG): minor.y minor.l # code.brg
+	make -C $(LIB)
+	byacc -dv minor.y
+	flex -dl minor.l
+	$(CC) $(CFLAGS) -o $(LANG) -I$(LIB) lex.yy.c y.tab.c $(LIB)/*.o 
+#	$(LINK.c) -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c -L$(LIB) -l$(UTIL)
+
+examples:: $(LANG)
+	make -C $(EXS)
+
+run:: $(LANG)
+	make -C $(EXS) run
+
+%: %.asm
+	$(AS) $*.asm
+	$(LD) -o $@ $*.o $(LDLIBS)
+
+clean::
+	make -C $(LIB) clean
+	make -C $(RUN) clean
+	rm -f *.o $(LANG) lib$(LANG).a lex.yy.c y.tab.c y.tab.h y.output yyselect.c *.asm *~

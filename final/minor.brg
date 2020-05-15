@@ -87,7 +87,7 @@ char: INT 1 {}
 char: CHAR 1 {}
 char: STR 1 { lbl++; fprintf(yyout, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
 
-eivec: NIL 
+eqvec: NIL 
 eqvec: ints 1 {}
 
 ints: INT 1 {}
