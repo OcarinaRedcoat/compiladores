@@ -38,13 +38,27 @@ static void outstr(char *s) {
   while (*s) fprintf(yyout, pfCHAR, (unsigned char)*s++);
   fprintf(yyout, pfCHAR, 0);
 }
+static int onlyINT(Node *n) { return LEFT_CHILD(n)->info == tINT ? 1 : 10000;} 
+
+static int onlySTR(Node *n) { return LEFT_CHILD(n)->info == tSTR ? 1 : 10000;} 
+
+static int isINT(Node *n) { return (LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) ? 1 : 10000; } 
+
+static int add(Node *n) { return ((LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) || 
+																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tINT) ||
+																		(LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tVEC)) ? 1 : 10000; }
+
+static int sub(Node *n) { return ((LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) || 
+																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tINT) ||
+																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tVEC) ||
+																		(LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tVEC)) ? 1 : 10000; }
 
 %}
 %term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
 %include "y.tab.h"
 %%
 file: PROGRAM(finaldecls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
-file: MODULE(finaldecls)	1 {}
+file: MODULE(finaldecls)	1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
 
 finaldecls: decls { fprintf(yyout, pfGLOBL pfTEXT pfALIGN pfLABEL pfENTER , "_main", pfFUNC, "_main", 0); }
 
@@ -80,11 +94,11 @@ eqint: INT 1 {}
 eqstr: NIL 
 eqstr: chars 1 {}
 
-chars: CHARS(NIL, char) 1 {  } 
+chars: CHARS(NIL, char) 1 {} 
 chars: CHARS(chars, char) 1 {}
 
-char: INT 1 {}
-char: CHAR 1 {}
+char: INT 1 { fprintf(yyout, pfIMM, p->value.i); }
+char: CHAR 1 { fprintf(yyout, pfIMM, p->value.i); }
 char: STR 1 { lbl++; fprintf(yyout, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
 
 eqvec: NIL 
@@ -115,9 +129,10 @@ block: STMT(instrs, loop) 1 {}
 instrs: NIL 
 instrs: STMT( instrs, instr) 1 { /*fprintf(yyout, );*/ } 
 
-instr: FI( THEN( IF (expr, block), elifs), else) 1 {} 
-instr: FOR( UNTIL( expr, expr), STEP(block, expr)) 1 {} 
-instr: EXCL( expr) 1 { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 3);} 
+instr: FI(THEN(IF(expr, block), elifs), else) 1 {} 
+instr: FOR(UNTIL(expr, expr), STEP(block, expr)) 1 {} 
+instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 
+instr: EXCL(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_printi", 4);} 
 instr: expr 1 {} 
 instr: CARD( expr, lval) 1 {} 
 
@@ -135,11 +150,11 @@ expr: lval 1 {}
 expr: IN 1 {} 
 expr: ADDR( lval) 1 {}
 expr: expr 1 {} 
-expr: ADD( expr, expr) 1 {} 
-expr: SUB( expr, expr) 1 {} 
-expr: MUL( expr, expr) 1 {} 
-expr: DIV( expr, expr) 1 {} 
-expr: MOD( expr, expr) 1 {} 
+expr: ADD( expr, expr) add { fprintf(yyout, pfADD); } 
+expr: SUB( expr, expr) sub { fprintf(yyout, pfSUB); } 
+expr: MUL( expr, expr) isINT { fprintf(yyout, pfMUL); } 
+expr: DIV( expr, expr) isINT { fprintf(yyout, pfDIV); } 
+expr: MOD( expr, expr) isINT { fprintf(yyout, pfMOD); } 
 expr: POW( expr, expr) 1 {} 
 expr: EQUAL( expr, expr) 1 {} 
 expr: NE( expr, expr) 1 {} 
