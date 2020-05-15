@@ -33,6 +33,12 @@ static char *mkfunc(char *s) {
 	strcat(buf, s);
 	return buf;
 }
+
+static void outstr(char *s) {
+  while (*s) fprintf(yyout, pfCHAR, (unsigned char)*s++);
+  fprintf(yyout, pfCHAR, 0);
+}
+
 %}
 %term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
 %include "y.tab.h"
@@ -74,14 +80,14 @@ eqint: INT 1 {}
 eqstr: NIL 
 eqstr: chars 1 {}
 
-chars: CHARS(NIL, char) 1 { char *lb = mklbl(++lbl); fprintf(yyout, pfRODATA pfALIGN pfLABEL pfCHAR, lb , RIGHT_CHILD(p)->value.i); } 
+chars: CHARS(NIL, char) 1 {  } 
 chars: CHARS(chars, char) 1 {}
 
 char: INT 1 {}
 char: CHAR 1 {}
-char: STR 1 {} 
+char: STR 1 { lbl++; fprintf(yyout, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
 
-eqvec: NIL 
+eivec: NIL 
 eqvec: ints 1 {}
 
 ints: INT 1 {}
