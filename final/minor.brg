@@ -19,6 +19,9 @@
 static void yytrace(NODEPTR_TYPE p, int eruleno, int cost, int bestcost);
 
 extern FILE *yyout;
+
+int lbl;
+
 static char *mklbl(int n) {
 	static char buf[20];
 	sprintf(buf, "%cL%d", n < 0 ? '.' : '_', n);
@@ -34,8 +37,10 @@ static char *mkfunc(char *s) {
 %term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
 %include "y.tab.h"
 %%
-file: PROGRAM(decls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 {}
-file: MODULE(decls)	1 {}
+file: PROGRAM(finaldecls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
+file: MODULE(finaldecls)	1 {}
+
+finaldecls: decls { fprintf(yyout, pfGLOBL pfTEXT pfALIGN pfLABEL pfENTER , "_main", pfFUNC, "_main", 0); }
 
 decls: NIL 																																		
 decls: gdecls 1 {}
@@ -50,14 +55,17 @@ decl: NIL
 
 fvar: NUMBER( ID, NIL) 1 {}
 fvar: STRING( ID, NIL) 1 {}
-fvar: ARRAY( ID, INTS(INT, NIL)) 1 {}
+fvar: ARRAY( ID, INTS(vdim, NIL)) 1 {}
 
 fvars: ARGS( NIL, fvar) 1 {}
 fvars: ARGS( fvars, fvar) 1 {}
 
 vardecl: NUMBER( ID, eqint) 1 {}
 vardecl: STRING( ID, eqstr) 1 {}
-vardecl: ARRAY( ID, INTS(INT, eqvec)) 1 {}
+vardecl: ARRAY( ID, INTS(vdim, eqvec)) 1 {}
+
+vdim: INT 1 {}
+vdim: NIL
 
 eqint: NIL 
 eqint: INT 1 {}
@@ -66,12 +74,12 @@ eqint: INT 1 {}
 eqstr: NIL 
 eqstr: chars 1 {}
 
-chars: CHARS(NIL, char) 1 {}
+chars: CHARS(NIL, char) 1 { char *lb = mklbl(++lbl); fprintf(yyout, pfRODATA pfALIGN pfLABEL pfCHAR, lb , RIGHT_CHILD(p)->value.i); } 
 chars: CHARS(chars, char) 1 {}
 
 char: INT 1 {}
 char: CHAR 1 {}
-char: STR 1 {}
+char: STR 1 {} 
 
 eqvec: NIL 
 eqvec: ints 1 {}
@@ -99,11 +107,11 @@ loop: STOP 1 {}
 block: STMT(instrs, loop) 1 {} 
 
 instrs: NIL 
-instrs: STMT( instrs, instr) 1 {} 
+instrs: STMT( instrs, instr) 1 { /*fprintf(yyout, );*/ } 
 
 instr: FI( THEN( IF (expr, block), elifs), else) 1 {} 
 instr: FOR( UNTIL( expr, expr), STEP(block, expr)) 1 {} 
-instr: EXCL( expr) 1 {} 
+instr: EXCL( expr) 1 { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 3);} 
 instr: expr 1 {} 
 instr: CARD( expr, lval) 1 {} 
 
@@ -116,7 +124,7 @@ else: block 1 {}
 lval: ID 1 {} 
 lval: PARE( expr, ID) 1 {} 
 
-expr: chars 1 {}
+expr: chars 1 { /*fprintf(yyout, pfADDR);*/ }
 expr: lval 1 {}
 expr: IN 1 {} 
 expr: ADDR( lval) 1 {}
