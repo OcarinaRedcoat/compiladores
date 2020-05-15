@@ -1,30 +1,33 @@
-.SUFFIXES: .$(EXT) .asm .obj .exe
 LANG=minor
-EXT=minor
-LIB=lib
-RUN=run
-AS=nasm -felf32
-ARCH=-DpfI386
+EXT=min# file extension: .$(EXT)
+LIB=lib# compiler library directory
+UTIL=util# compiler library: lib$(LIB).a
+RUN=run# runtime directory
+EXS=exs# examples directory
 CC=gcc
-CFLAGS=-g -DYYDEBUG $(ARCH)
+CFLAGS=-g -DYYDEBUG -DpfI386
+AS=nasm -felf32
 LD=ld -m elf_i386
+LDLIBS=lib$(LANG).a
 
 $(LANG): $(LANG).y $(LANG).l $(LANG).brg
-	make -C lib
+	make -C $(LIB)
 	byacc -dv $(LANG).y
-	flex -l $(LANG).l
+	flex -dl $(LANG).l
 	pburg -T $(LANG).brg
-	$(CC) $(CFLAGS) -o $(LANG) -I$(LIB) lex.yy.c y.tab.c yyselect.c $(LIB)/*.o 
+	$(LINK.c) -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -l$(UTIL)
 	make -C $(RUN)
-	-cp $(RUN)/libminor.a libminor.a
+	-cp $(RUN)/libminor.a $(LDLIBS)
 
+out: out.asm $(LANG)
+	$(AS) out.asm -o out.o
+	$(LD) out.o $(LDLIBS) -o out
+	./out
 
-run: run.asm $(LANG)
-	$(AS) run.asm -o run.o
-	$(LD) run.o libminor.a -o run
-	./run
-
+examples:: $(LANG)
+	make -C $(EXS)
 
 clean::
-	rm -f *.o $(LANG) lex.yy.c y.tab.c y.tab.h y.output yyselect.c exs/*.asm *~ *.obj *.exe 
-	rm -rf *.dSYM
+	make -C $(LIB) clean
+	make -C $(RUN) clean
+	rm -f *.o $(LANG) $(LDLIBS) lex.yy.c y.tab.c y.tab.h y.output yyselect.c *.asm *~
