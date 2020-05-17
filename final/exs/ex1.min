@@ -1,8 +1,8 @@
 module
-$$	public number x;
-$$	public number doze := 12;
+		number doze := 12;
+		public number x
 $$	public string s;
-	public string hi := "hello"
+$$	public string hi := "hello"
 $$	public array v1;
 $$	public array v1[2] := 1
 end

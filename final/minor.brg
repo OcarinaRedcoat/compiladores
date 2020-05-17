@@ -21,6 +21,8 @@ static void yytrace(NODEPTR_TYPE p, int eruleno, int cost, int bestcost);
 extern FILE *yyout;
 
 int lbl;
+static char *extrns[100]; /* emit externs at the end only */
+static int extcnt;
 
 static char *mklbl(int n) {
 	static char buf[20];
@@ -72,11 +74,7 @@ gdecls: DECL(gdecls, decl) 1 {}
 gdecls: DECL(NIL, decl) 1 {}
 
 
-decl: VAR(fvardecl) fwd
-decl: VAR(pvardecl) pub
-decl: VAR(vardecl)  10
-
-%!decl: VAR(vardecl) 1 { if (p->info & tFWD) { fprintf(yyout,pfEXTRN, LEFT_CHILD(LEFT_CHILD(p))->value.s); } else if (p->info & tPUB){ fprintf(yyout, pfGLOBL, LEFT_CHILD(LEFT_CHILD(p))->value.s, pfOBJ); } /*if (LEFT_CHILD(RIGHT_CHILD(LEFT_CHILD(p))) == NIL){fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(LEFT_CHILD(p))->value.s, RIGHT_CHILD(LEFT-CHILD(p))->value.i);} else {fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(LEFT_CHILD(p))->value.s, RIGHT_CHILD(LEFT-CHILD(p))->value.i);} */ }
+decl: VAR(vardecl) 1 { if (p->info & tFWD) { /*fprintf(yyout,pfEXTRN, LEFT_CHILD(LEFT_CHILD(p))->value.s);*/ } else if (p->info & tPUB){ fprintf(yyout, pfGLOBL, LEFT_CHILD(LEFT_CHILD(p))->value.s, pfOBJ); } }
 
 decl: FUNCTION(END(ID, INT), FARGS(fvars, eqbody)) 1 {}
 decl: FUNCTION(END(ID, INT), FARGS(NIL, eqbody)) 1 {}
@@ -89,17 +87,8 @@ fvar: ARRAY(ID, INTS(vdim, NIL)) 1 {}
 fvars: ARGS(NIL, fvar) 1 {}
 fvars: ARGS(fvars, fvar) 1 {}
 
-
-fvardecl: NUMBER(ID, eqint) 1 {  fprintf(yyout, pfEXTRN pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); }
-fvardecl: STRING(ID, eqstr) 1 { /*fprintf(yyout, pfData pfALIGN pfLABEL);*/}
-fvardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 {}
-
-pvardecl: NUMBER(ID, eqint) 1 { fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); }
-pvardecl: STRING(ID, eqstr) 1 { fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, mklbl(lbl));}
-pvardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 {}
-
-vardecl: NUMBER(ID, eqint) 1 { fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); }
-vardecl: STRING(ID, eqstr) 1 { /*fprintf(yyout, pfData pfALIGN pfLABEL);*/}
+vardecl: NUMBER(ID, eqint) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(p)->value.s, 4); } }
+vardecl: STRING(ID, eqstr) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, mklbl(lbl)); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0); } }
 vardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 {}
 
 vdim: INT 1 {}
@@ -116,7 +105,7 @@ chars: CHARS(chars, char) 1 {}
 
 char: INT 1 { fprintf(yyout, pfIMM, p->value.i); }
 char: CHAR 1 { fprintf(yyout, pfIMM, p->value.i); }
-char: STR 1 { lbl++; fprintf(yyout, pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
+char: STR 1 { lbl++; fprintf(yyout, pfDATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
 
 eqvec: NIL 
 eqvec: ints 1 {}
@@ -189,6 +178,14 @@ expr: CURVE(ID, exprs) 1 {}
 exprs: COMMA(expr, NIL) 1 {} 
 exprs: COMMA(expr, exprs) 1 {} 
 %%
+
+void externs(){
+  int i;
+  for (i = 0; i < extcnt; i++)
+    if (extrns[i])
+      fprintf(yyout, pfEXTRN, extrns[i]);
+}
+
 extern char **yynames;
 extern int trace, errors, debugNode;
 void evaluate(Node *p) {
