@@ -1,0 +1,8 @@
+module
+$$	public number x;
+$$	public number doze := 12;
+$$	public string s;
+	public string hi := "hello"
+$$	public array v1;
+$$	public array v1[2] := 1
+end
