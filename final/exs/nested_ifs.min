@@ -1,0 +1,12 @@
+program
+start
+    if 2 then
+        "yes"!
+    		if 0 then
+        	"no"!
+				else
+					"\nnested yes"!
+   		 	fi
+    fi
+    "\n"!
+end

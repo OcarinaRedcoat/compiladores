@@ -139,42 +139,18 @@ block: STMT(instrs, loop) 1 {}
 instrs: NIL 
 instrs: STMT(instrs, instr) 1 { /*fprintf(yyout, );*/ } 
 
-instr: FI(THEN(IF(cond, block), NIL), NIL) onlyIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
+instr: FI(THEN(IF(cond, block), NIL), NIL) 1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
 cond: expr 1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(p->place)); }
 
-instr: FI(THEN(if, NIL), block) hasELSE {fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place));}
+instr: FI(THEN(if, NIL), block) 1 {fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place));}
 if: IF(cond, block) 1 { p->place = ++lbl; fprintf(yyout, pfJMP pfLABEL, mklbl(p->place), mklbl(LEFT_CHILD(p)->place));}
 
-%!instr: FI(THEN(IF(cond, block), elifs), NIL) hasELIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
-%!instr: FI(THEN(IF(cond, block), elifs), block) hasELIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
+instr: FI(THEN(if, elifs), NIL) 1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place)); }
+instr: FI(THEN(if, elifs), block) 1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place)); }
 %!cond: expr 1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(p->place)); }
 
-%!elifs: NIL 
-%!elifs: ELIF(elifs, IF(cond, block)) 1 {} 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+elifs: NIL 
+elifs: ELIF(elifs, if) 1 { fprintf(yyout, pfLABEL, mklbl(RIGHT_CHILD(p)->place)); } 
 
 instr: FOR(UNTIL(expr, expr), STEP(block, expr)) 1 {} 
 instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 

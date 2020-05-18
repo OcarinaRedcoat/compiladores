@@ -1,6 +1,6 @@
 program
 start
-    if 2 then
+    if 2=2 then
         "yes"!
     else
         "no"!
