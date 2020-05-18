@@ -56,7 +56,11 @@ static int sub(Node *n) { return ((LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)
 																		(LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tVEC)) ? 1 : 10000; }
 
 static int fwd(Node *n) { return n->info & tFWD ? 1 : 10000; }
-static int pub(Node *n) { return n->info & tPUB? 1 : 10000; }
+static int pub(Node *n) { return n->info & tPUB ? 1 : 10000; }
+
+static int onlyIF(Node *n) { return ((RIGHT_CHILD(n) == NULL) && (LEFT_CHILD(RIGHT_CHILD(n)) == NULL)) ? 1 : 10000; }
+static int hasELSE(Node *n){ return ((RIGHT_CHILD(n) != NULL) && (LEFT_CHILD(RIGHT_CHILD(n)) != NULL)) ? 1 : 10000; }
+static int hasELIF(Node *n){ return ((RIGHT_CHILD(n) != NULL) && (LEFT_CHILD(RIGHT_CHILD(n)) != NULL)) ? 1 : 10000; }
 
 %}
 %term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
@@ -87,9 +91,9 @@ fvar: ARRAY(ID, INTS(vdim, NIL)) 1 {}
 fvars: ARGS(NIL, fvar) 1 {}
 fvars: ARGS(fvars, fvar) 1 {}
 
-vardecl: NUMBER(ID, eqint) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(p)->value.s, 4); } }
-vardecl: STRING(ID, eqstr) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, mklbl(lbl)); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0); } }
-vardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 {}
+vardecl: NUMBER(ID, eqint) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); else { /*fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(p)->value.s, 4); */} }
+vardecl: STRING(ID, eqstr) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, mklbl(lbl)); else {/* fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0);*/ } }
+vardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 { /*if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, mklbl(lbl)); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0); }*/ }
 
 vdim: INT 1 {}
 vdim: NIL
@@ -105,7 +109,7 @@ chars: CHARS(chars, char) 1 {}
 
 char: INT 1 { fprintf(yyout, pfIMM, p->value.i); }
 char: CHAR 1 { fprintf(yyout, pfIMM, p->value.i); }
-char: STR 1 { lbl++; fprintf(yyout, pfDATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
+char: STR 1 { lbl++; fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL, mklbl(lbl), pfOBJ, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }
 
 eqvec: NIL 
 eqvec: ints 1 {}
@@ -135,18 +139,48 @@ block: STMT(instrs, loop) 1 {}
 instrs: NIL 
 instrs: STMT(instrs, instr) 1 { /*fprintf(yyout, );*/ } 
 
-instr: FI(THEN(IF(expr, block), elifs), else) 1 {} 
+instr: FI(THEN(IF(cond, block), NIL), NIL) onlyIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
+cond: expr 1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(p->place)); }
+
+instr: FI(THEN(if, NIL), block) hasELSE {fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place));}
+if: IF(cond, block) 1 { p->place = ++lbl; fprintf(yyout, pfJMP pfLABEL, mklbl(p->place), mklbl(LEFT_CHILD(p)->place));}
+
+%!instr: FI(THEN(IF(cond, block), elifs), NIL) hasELIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
+%!instr: FI(THEN(IF(cond, block), elifs), block) hasELIF { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
+%!cond: expr 1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(p->place)); }
+
+%!elifs: NIL 
+%!elifs: ELIF(elifs, IF(cond, block)) 1 {} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 instr: FOR(UNTIL(expr, expr), STEP(block, expr)) 1 {} 
 instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 
 instr: EXCL(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_printi", 4);} 
 instr: expr 1 {} 
 instr: CARD(expr, lval) 1 {} 
-
-elifs: NIL 
-elifs: ELIF(elifs, IF(expr, block)) 1 {} 
-
-else: NIL 
-else: block 1 {}
 
 lval: ID 1 {} 
 lval: PARE(expr, ID) 1 {} 
@@ -162,16 +196,16 @@ expr: MUL(expr, expr) isINT { fprintf(yyout, pfMUL); }
 expr: DIV(expr, expr) isINT { fprintf(yyout, pfDIV); } 
 expr: MOD(expr, expr) isINT { fprintf(yyout, pfMOD); } 
 expr: POW(expr, expr) isINT {} 
-expr: EQUAL(expr, expr) 1 {} 
-expr: NE(expr, expr) 1 {} 
-expr: GE(expr, expr) 1 {} 
-expr: LE(expr, expr) 1 {} 
-expr: MIN(expr, expr) 1 {} 
-expr: MAX(expr, expr) 1 {} 
-expr: AND(expr, expr) 1 {} 
-expr: OR(expr, expr) 1 {} 
-expr: NOT(expr) 1 {} 
-expr: uminus(expr) 1 {} 
+expr: EQUAL(expr, expr) 1 { fprintf(yyout, pfEQ); } 
+expr: NE(expr, expr) 1 { fprintf(yyout, pfNE); } 
+expr: GE(expr, expr) 1 { fprintf(yyout, pfGE); } 
+expr: LE(expr, expr) 1 { fprintf(yyout, pfLE); } 
+expr: MIN(expr, expr) 1 { fprintf(yyout, pfLT); } 
+expr: MAX(expr, expr) 1 { fprintf(yyout, pfGT); } 
+expr: AND(expr, expr) 1 {/* fprintf(yyout, pfGT); */} 
+expr: OR(expr, expr) 1 {/* fprintf(yyout, pfGT); */} 
+expr: NOT(expr) 1 { fprintf(yyout, pfIMM pfEQ, 0); } 
+expr: uminus(expr) 1 { fprintf(yyout, pfNEG); } 
 expr: EQ(expr, lval) 1 {} 
 expr: CURVE(ID, exprs) 1 {} 
 

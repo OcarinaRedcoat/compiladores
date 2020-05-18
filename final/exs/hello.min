@@ -1,8 +1,6 @@
 program
-	string x := "hello"
 start
 	"Olá pessoal\n"!
-	x!
 end
 
 A partir daqui pode haver texto ( de qualquer tipo ), incluindo operadores,
