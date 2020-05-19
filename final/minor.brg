@@ -78,7 +78,7 @@ gdecls: DECL(gdecls, decl) 1 {}
 gdecls: DECL(NIL, decl) 1 {}
 
 
-decl: VAR(vardecl) 1 { if (p->info & tFWD) { /*fprintf(yyout,pfEXTRN, LEFT_CHILD(LEFT_CHILD(p))->value.s);*/ } else if (p->info & tPUB){ fprintf(yyout, pfGLOBL, LEFT_CHILD(LEFT_CHILD(p))->value.s, pfOBJ); } }
+decl: VAR(vardecl) 1 { if (p->info & tFWD) { LEFT_CHILD(p)->place = tFWD;} else if (p->info & tPUB){ LEFT_CHILD(p)->place = tPUB; } }
 
 decl: FUNCTION(END(ID, INT), FARGS(fvars, eqbody)) 1 {}
 decl: FUNCTION(END(ID, INT), FARGS(NIL, eqbody)) 1 {}
@@ -91,18 +91,18 @@ fvar: ARRAY(ID, INTS(vdim, NIL)) 1 {}
 fvars: ARGS(NIL, fvar) 1 {}
 fvars: ARGS(fvars, fvar) 1 {}
 
-vardecl: NUMBER(ID, eqint) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); else { /*fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(p)->value.s, 4); */} }
-vardecl: STRING(ID, eqstr) 1 { if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, mklbl(lbl)); else {/* fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0);*/ } }
+vardecl: NUMBER(ID, eqint) 1 { if (p->place == tFWD) { /*fprintf(yyout,pfEXTRN, LEFT_CHILD(LEFT_CHILD(p))->value.s);*/ } else { fprintf(yyout, pfGLOBL, LEFT_CHILD(p)->value.s, pfOBJ);  } if (RIGHT_CHILD(p)->place != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(p)->value.s, RIGHT_CHILD(p)->value.i); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(p)->value.s, 4);} }
+vardecl: STRING(ID, eqstr) 1 { if (p->place == tFWD) { /*fprintf(yyout,pfEXTRN, LEFT_CHILD(LEFT_CHILD(p))->value.s);*/ } else { fprintf(yyout, pfGLOBL, LEFT_CHILD(p)->value.s, pfOBJ);  } if (RIGHT_CHILD(p)->place != 0) fprintf(yyout, pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, mklbl(lbl)); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0); } }
 vardecl: ARRAY(ID, INTS(vdim, eqvec)) 1 { /*if (RIGHT_CHILD(p) != 0) fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(p)->value.s, pfOBJ, LEFT_CHILD(p)->value.s, mklbl(lbl)); else { fprintf(yyout, pfBSS pfALIGN pfLABEL pfCONST, LEFT_CHILD(p)->value.s, 0); }*/ }
 
-vdim: INT 1 {}
-vdim: NIL
+vdim: INT 1 { p->place = 1; }
+vdim: NIL {p->place = 0;}
 
-eqint: NIL 
-eqint: INT 1 { /*fprintf(yyout, pfINTEGER, p->value.i);*/ }
+eqint: NIL {p->place = 0;}
+eqint: INT 1 { p->place = 1; }
 
-eqstr: NIL 
-eqstr: chars 1 {}
+eqstr: NIL {p->place = 0;}
+eqstr: chars 1 { p->place = 1; }
 
 chars: CHARS(NIL, char) 1 {} 
 chars: CHARS(chars, char) 1 {}
@@ -178,8 +178,8 @@ expr: GE(expr, expr) 1 { fprintf(yyout, pfGE); }
 expr: LE(expr, expr) 1 { fprintf(yyout, pfLE); } 
 expr: MIN(expr, expr) 1 { fprintf(yyout, pfLT); } 
 expr: MAX(expr, expr) 1 { fprintf(yyout, pfGT); } 
-expr: AND(expr, expr) 1 {/* fprintf(yyout, pfGT); */} 
-expr: OR(expr, expr) 1 {/* fprintf(yyout, pfGT); */} 
+expr: AND(expr, expr) isINT { fprintf(yyout, pfAND);  } 
+expr: OR(expr, expr) isINT { fprintf(yyout, pfOR); } 
 expr: NOT(expr) 1 { fprintf(yyout, pfIMM pfEQ, 0); } 
 expr: uminus(expr) 1 { fprintf(yyout, pfNEG); } 
 expr: EQ(expr, lval) 1 {} 
