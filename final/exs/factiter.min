@@ -9,7 +9,7 @@ program
 	function forward number argc done; $EXTRN argc$
 	function forward string argv number n done $EXTRN argv$
 start
-	if argc > 1 then:
+	if argc > 1 then
 		factorial(atoi(argv(1))) ! "\n" !
 	fi
 end

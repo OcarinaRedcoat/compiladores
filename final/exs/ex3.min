@@ -1,5 +1,6 @@
 program
-	number x := 12
+	public number x
 start
+	x := 5;
 	x + ? !
 end

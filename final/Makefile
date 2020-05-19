@@ -12,6 +12,7 @@ LDLIBS=lib$(LANG).a
 
 $(LANG): $(LANG).y $(LANG).l $(LANG).brg
 	make -C $(LIB)
+	make -C $(RUN)
 	byacc -dv $(LANG).y
 	flex -dl $(LANG).l
 	pburg -T $(LANG).brg
