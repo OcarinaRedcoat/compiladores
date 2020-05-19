@@ -158,11 +158,11 @@ instr: EXCL(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_
 instr: expr 1 {} 
 instr: CARD(expr, lval) 1 {} 
 
-lval: ID 1 {} 
+lval: ID 1 { fprintf(yyout, pfADDR pfLOAD, p->value.s);} 
 lval: PARE(expr, ID) 1 {} 
 
 expr: chars 1 { /*fprintf(yyout, pfADDR);*/ }
-expr: lval 1 { fprintf(yyout, pfADDR pfLOAD, p->value.s);}
+expr: lval 1 {/* fprintf(yyout, pfADDR pfLOAD, p->value.s);*/}
 expr: IN 1 { fprintf(yyout, pfEXTRN pfCALL pfTRASH pfPUSH, "_readi", "_readi", 0);} 
 expr: ADDR(lval) 1 {}
 expr: expr 1 {} 
