@@ -10,6 +10,7 @@ int yylex(), yyparse(), yyerror(const char*), evaluate(Node*); /* parsers */
 
 void localVars(int);
 void declFwdPub(int, int, Node*);
+void declFvar(int, char *, int, int);
 static int posb;
 static int varf;
 void functionDecl(char*,int, int);
@@ -50,7 +51,7 @@ static int ret, cycle;
 %nonassoc uminus
 
 %%
-file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); posb = 0; } main END
+file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); posb = 0; varf = 1;} main END
 	 { IDpop(); evaluate(binNode(PROGRAM, $2, binNode(FUNCTION, binNode(END, TID(func), TINT(ret)), binNode(FARGS, nilNode(NIL), $5)))); }
 	| MODULE decls END
 	 { evaluate(uniNode(MODULE, $2)); }
@@ -72,15 +73,15 @@ decl	: qualif const vardecl { $$ = uniNode(VAR, $3); $$->info = $1+$2+$3->info; 
 	| error	{ $$ = nilNode(NIL); }
 	;
 
-fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT; }
+fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT;}
 	| STRING ID	{ $$ = binNode(STRING, TID($2), nilNode(NIL)); $$->info = tSTR; }
 	| ARRAY ID vdim	{ $$ = binNode(ARRAY, TID($2), binNode(INTS, TINT($3), nilNode(NIL))); $$->info = tVEC; }
 	;
 
 fvars	: fvar			{ $$ = binNode(ARGS, nilNode(NIL), $1);
-					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); posb += 4; }
+					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); posb += 4; $1->place = posb; }
 	| fvars ';' fvar	{ $$ = binNode(ARGS, $1, $3);
-					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); posb += 4;}
+					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); posb += 4; $3->place = posb;}
 	;
 
 vardecl	: NUMBER ID eqint	{ $$ = binNode(NUMBER, TID($2), $3); $$->info = tINT; }

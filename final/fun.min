@@ -1,6 +1,0 @@
-program
-	function string test do
-		return "test"
-start
-	test!
-end

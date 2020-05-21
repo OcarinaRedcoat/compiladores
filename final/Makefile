@@ -5,7 +5,7 @@ UTIL=util# compiler library: lib$(LIB).a
 RUN=run# runtime directory
 EXS=exs# examples directory
 CC=gcc
-CFLAGS=-g -DYYDEBUG -DpfI386
+CFLAGS= -g -DYYDEBUG -DpfI386
 AS=nasm -felf32
 LD=ld -m elf_i386
 LDLIBS=lib$(LANG).a
@@ -16,7 +16,7 @@ $(LANG): $(LANG).y $(LANG).l $(LANG).brg
 	byacc -dv $(LANG).y
 	flex -dl $(LANG).l
 	pburg -T $(LANG).brg
-	$(LINK.c) -g -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -l$(UTIL)
+	$(LINK.c) -w -g -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -l$(UTIL)
 	make -C $(RUN)
 	-cp $(RUN)/libminor.a $(LDLIBS)
 

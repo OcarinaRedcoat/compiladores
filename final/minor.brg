@@ -93,9 +93,9 @@ decl: FUNCTION(END(ID, INT), FARGS(fvars, eqbody)) 1 {}
 decl: FUNCTION(END(ID, INT), FARGS(NIL, eqbody)) 1 {}
 decl: NIL	
 
-fvar: NUMBER(ID, NIL) 1 {}
-fvar: STRING(ID, NIL) 1 {}
-fvar: ARRAY(ID, INTS(vdim, NIL)) 1 {}
+fvar: NUMBER(ID, NIL) 1 { IDnew(tINT, LEFT_CHILD(p)->value.s, -(p->place)); fprintf(yyout, ";---------- %d - %s", -(p->place), LEFT_CHILD(p)->value.s );}
+fvar: STRING(ID, NIL) 1 { IDnew(tSTR, LEFT_CHILD(p)->value.s, -(p->place)); }
+fvar: ARRAY(ID, INTS(vdim, NIL)) 1 { IDnew(tVEC, LEFT_CHILD(p)->value.s, -(p->place)); }
 
 fvars: ARGS(NIL, fvar) 1 {}
 fvars: ARGS(fvars, fvar) 1 {}
@@ -173,7 +173,8 @@ instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_
 instr: expr 1 {} 
 instr: CARD(expr, lval) 1 {} 
 
-lval: ID 1 { fprintf(yyout, pfADDR, p->value.s);	} 
+lval: ID 1 { long n; int type = IDfind(p->value.s, (void *)&n); if ( type != -1 ) {fprintf(yyout, pfLOCAL, n);} else {fprintf(yyout, pfADDR, p->value.s);}}
+%!lval: ID 1 { fprintf(yyout, pfADDR, p->value.s);  } 
 lval: PARE(expr, ID) 1 {} 
 
 expr: chars 1 { /*fprintf(yyout, pfADDR);*/ }
@@ -202,7 +203,7 @@ or:	expr		1 { p->place = ++lbl; fprintf(yyout, pfDUP pfJNZ pfTRASH, mklbl(p->pla
 expr: NOT(expr) 1 { fprintf(yyout, pfIMM pfEQ, 0); } 
 expr: uminus(expr) 1 { fprintf(yyout, pfNEG); }
 
-ass: expr 1 { fprintf(yyout, pfDUP); }
+ass: expr 1 { /*fprintf(yyout, pfDUP);*/ }
 expr: EQ(ass, lval) 1 { fprintf(yyout, pfSTORE); }
 
 expr: CURVE(ID, exprs) 1 {} 
@@ -300,9 +301,9 @@ void functionDecl(char *name, int qual,int enter){
 	} 
 }
 
-void declFvar(int flag){
-	/*IDnew(tINT, "n", -4))*/
-
-
+void declFvar(int i, char *name, int pos ,int flag){
+	if (flag == 1){
+		/*IDnew(i, name, -pos);*/
+	}
 }
 
