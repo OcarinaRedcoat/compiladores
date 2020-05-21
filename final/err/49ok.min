@@ -1,10 +1,6 @@
 program
-	const string x := "hello"
 start
-$$	"Olá pessoal\n"!
-$$	"hello"="hello"!"\n"!
-$$	"eello"="hello"!"\n"!
-	x!
+  "olá pessoal!\n"!
 end
 
 A partir daqui pode haver texto ( de qualquer tipo ), incluindo operadores,

@@ -10,6 +10,7 @@
 #include "postfix.h"
 #include "y.tab.h"
 #include "minor.h"
+#include "tabid.h"
 
 #ifndef U_
 #define U_ "_"
@@ -40,21 +41,28 @@ static void outstr(char *s) {
   while (*s) fprintf(yyout, pfCHAR, (unsigned char)*s++);
   fprintf(yyout, pfCHAR, 0);
 }
-static int onlyINT(Node *n) { return LEFT_CHILD(n)->info == tINT ? 1 : 10000;} 
 
-static int onlySTR(Node *n) { return LEFT_CHILD(n)->info == tSTR ? 1 : 10000;} 
 
-static int isINT(Node *n) { return (LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) ? 1 : 10000; } 
-static int isSTR(Node *n) { return (LEFT_CHILD(n)->info == tSTR && RIGHT_CHILD(n)->info == tSTR) ? 1 : 10000; } 
 
-static int add(Node *n) { return ((LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) || 
-																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tINT) ||
-																		(LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tVEC)) ? 1 : 10000; }
 
-static int sub(Node *n) { return ((LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tINT) || 
-																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tINT) ||
-																		(LEFT_CHILD(n)->info == tVEC && RIGHT_CHILD(n)->info == tVEC) ||
-																		(LEFT_CHILD(n)->info == tINT && RIGHT_CHILD(n)->info == tVEC)) ? 1 : 10000; }
+
+
+static int onlyINT(Node *n) { return LEFT_CHILD(n)->info & tINT  ? 1 : 10000;} 
+
+static int onlySTR(Node *n) { return LEFT_CHILD(n)->info & tSTR ? 1 : 10000; }
+
+
+static int isINT(Node *n) { return (LEFT_CHILD(n)->info & tINT && RIGHT_CHILD(n)->info & tINT) ? 1 : 10000; } 
+static int isSTR(Node *n) { return (LEFT_CHILD(n)->info & tSTR && RIGHT_CHILD(n)->info & tSTR) ? 1 : 10000; } 
+
+static int add(Node *n) { return ((LEFT_CHILD(n)->info & tINT && RIGHT_CHILD(n)->info & tINT) || 
+																		(LEFT_CHILD(n)->info & tVEC && RIGHT_CHILD(n)->info & tINT) ||
+																		(LEFT_CHILD(n)->info & tINT && RIGHT_CHILD(n)->info & tVEC)) ? 1 : 10000; }
+
+static int sub(Node *n) { return ((LEFT_CHILD(n)->info & tINT && RIGHT_CHILD(n)->info & tINT) || 
+																		(LEFT_CHILD(n)->info & tVEC && RIGHT_CHILD(n)->info & tINT) ||
+																		(LEFT_CHILD(n)->info & tVEC && RIGHT_CHILD(n)->info & tVEC) ||
+																		(LEFT_CHILD(n)->info & tINT && RIGHT_CHILD(n)->info & tVEC)) ? 1 : 10000; }
 
 static int fwd(Node *n) { return n->info & tFWD ? 1 : 10000; }
 static int pub(Node *n) { return n->info & tPUB ? 1 : 10000; }
@@ -115,7 +123,7 @@ chars: CHARS(chars, char) 1 {}
 
 char: INT 1 { fprintf(yyout, pfIMM, p->value.i); }
 char: CHAR 1 { fprintf(yyout, pfIMM, p->value.i); }
-char: STR 1 { if (p->place != 1) {lbl++; fprintf(yyout, pfGLOBL pfDATA pfALIGN pfLABEL, mklbl(lbl), pfOBJ, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }}
+char: STR 1 { if (p->place != 1) {lbl++; fprintf(yyout, pfGLOBL pfRODATA pfALIGN pfLABEL, mklbl(lbl), pfOBJ, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }}
 
 eqvec: NIL 
 eqvec: ints 1 {}
@@ -133,8 +141,8 @@ body: START(fvars , STMT(instrs, ret)) 1 {}
 body: START(NIL , STMT(instrs, ret)) 1 {}
 
 ret: RETURN(NIL)  1 {}
-ret: RETURN(expr) 1 {} 
-ret: NIL 
+ret: RETURN(expr) 1 {fprintf(yyout, pfPOP pfLEAVE pfRET);} 
+ret: NIL
 
 loop: ret	1 {}
 loop: REPEAT 1 {} 
@@ -158,8 +166,10 @@ elifs: NIL
 elifs: ELIF(elifs, if) 1 { fprintf(yyout, pfLABEL, mklbl(RIGHT_CHILD(p)->place)); } 
 
 instr: FOR(UNTIL(expr, expr), STEP(block, expr)) 1 {   } 
+
 instr: EXCL(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_printi", 4);} 
 instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 
+
 instr: expr 1 {} 
 instr: CARD(expr, lval) 1 {} 
 
@@ -229,7 +239,7 @@ static void yytrace(NODEPTR_TYPE p, int eruleno, int cost, int bestcost)
 }
 #endif
 
-void declFwdPub(int qual, Node *var){
+void declFwdPub(int qual, int constante ,Node *var){
 	if (qual == tPUB) {
 		fprintf(yyout, pfGLOBL, LEFT_CHILD(var)->value.s, pfOBJ);
 	} else if (qual == tFWD) {
@@ -238,7 +248,12 @@ void declFwdPub(int qual, Node *var){
 
 	if (var->attrib == NUMBER) {
 		if (RIGHT_CHILD(var)->info != 0){
+			if (constante == 0){
 			fprintf(yyout, pfDATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(var)->value.s, RIGHT_CHILD(var)->value.i);
+			}
+			else if (constante == tCNST){
+			fprintf(yyout, pfRODATA pfALIGN pfLABEL pfINTEGER, LEFT_CHILD(var)->value.s, RIGHT_CHILD(var)->value.i);
+			}
 		}
 		else {
 			fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(var)->value.s, 4);	
@@ -246,11 +261,20 @@ void declFwdPub(int qual, Node *var){
 	}
 	else if (var->attrib == STRING) { 
 		if (RIGHT_CHILD(RIGHT_CHILD(var)) != NULL){
+			if (constante == 0){
 			fprintf(yyout, pfDATA pfALIGN pfLABEL pfID, LEFT_CHILD(var)->value.s, mklbl(++lbl));
 			fprintf(yyout, pfDATA pfALIGN pfLABEL, mklbl(lbl));
 			outstr(RIGHT_CHILD(RIGHT_CHILD(var))->value.s);
 			RIGHT_CHILD(RIGHT_CHILD(var))->place = 1;
 			fprintf(yyout, pfDATA pfID, mklbl(lbl));
+			}
+			else if (constante == tCNST){
+			fprintf(yyout, pfRODATA pfALIGN pfLABEL pfID, LEFT_CHILD(var)->value.s, mklbl(++lbl));
+			fprintf(yyout, pfRODATA pfALIGN pfLABEL, mklbl(lbl));
+			outstr(RIGHT_CHILD(RIGHT_CHILD(var))->value.s);
+			RIGHT_CHILD(RIGHT_CHILD(var))->place = 1;
+			fprintf(yyout, pfRODATA pfID, mklbl(lbl));
+			}
 		}
 		else {
 			fprintf(yyout, pfBSS pfALIGN pfLABEL pfBYTE, LEFT_CHILD(var)->value.s, 4);
@@ -276,5 +300,9 @@ void functionDecl(char *name, int qual,int enter){
 	} 
 }
 
+void declFvar(int flag){
+	/*IDnew(tINT, "n", -4))*/
 
+
+}
 

@@ -1,0 +1,11 @@
+program 
+
+	public number i := 2
+
+start
+	if 0 > 1 then
+		"dead code!\n"!
+	else
+			"dentro do else\n"!	
+	fi
+end
