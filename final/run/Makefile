@@ -12,8 +12,6 @@ $(RUNTIME): dbl.o linux.o lib.o sys.o minorhelp.o
 .asm.o:
 	$(AS) $< -o $@
 
-
-
 install:: $(RUNTIME)
 	cp $(RUNTIME) ..
 

@@ -7,6 +7,12 @@
 #include "minor.h"
 
 int yylex(), yyparse(), yyerror(const char*), evaluate(Node*); /* parsers */
+
+void localVars(int);
+void declFwdPub(int, Node*);
+static int posb;
+void functionDecl(char*,int, int);
+
 static int isId(char*,Node*,int*), isInt(Node*,char*), isAddSub(Node*,char*);
 static int isCmp(Node*,char*), isUniInt(Node*,char*), isAddr(Node*);
 static int isAssign(Node *n), isCall(char*,Node*,Node*);
@@ -43,7 +49,7 @@ static int ret, cycle;
 %nonassoc uminus
 
 %%
-file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); } main END
+file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); posb = 0; } main END
 	 { IDpop(); evaluate(binNode(PROGRAM, $2, binNode(FUNCTION, binNode(END, TID(func), TINT(ret)), binNode(FARGS, nilNode(NIL), $5)))); }
 	| MODULE decls END
 	 { evaluate(uniNode(MODULE, $2)); }
@@ -57,11 +63,11 @@ gdecls	: gdecls ';' decl	{ $$ = binNode(DECL, $1, $3); }
 	| decl			{ $$ = binNode(DECL, nilNode(NIL), $1); }
 	;
 
-decl	: qualif const vardecl { $$ = uniNode(VAR, $3); $$->info = $1+$2+$3->info; isCte($$); }
-	| FUNCTION qualif ftype ID { isFunc(func = $4, ret = $2+$3+tFUNC); IDpush(); } fvars { IDchange(ret, $4, $6, 1); } eqbody
-		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, $6, $8)); IDpop(); isFwd(func, ret, $8); }
-	| FUNCTION qualif ftype ID { isFunc( func = $4, ret = $2+$3+tFUNC); IDpush(); } eqbody
-		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, nilNode(NIL), $6)); IDpop(); isFwd(func, ret, $6); }
+decl	: qualif const vardecl { $$ = uniNode(VAR, $3); $$->info = $1+$2+$3->info; isCte($$); declFwdPub($1, $3); }
+	| FUNCTION qualif ftype ID { isFunc(func = $4, ret = $2+$3+tFUNC); IDpush(); } fvars { IDchange(ret, $4, $6, 1); posb = 0; } eqbody
+		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, $6, $8)); IDpop(); isFwd(func, ret, $8); functionDecl($4, $2, posb);}
+	| FUNCTION qualif ftype ID { isFunc( func = $4, ret = $2+$3+tFUNC); IDpush(); posb = 0; } eqbody
+		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, nilNode(NIL), $6)); IDpop(); isFwd(func, ret, $6); functionDecl($4, $2, posb); }
 	| error	{ $$ = nilNode(NIL); }
 	;
 
@@ -71,9 +77,9 @@ fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT;
 	;
 
 fvars	: fvar			{ $$ = binNode(ARGS, nilNode(NIL), $1);
-					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); }
+					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); posb += 4; }
 	| fvars ';' fvar	{ $$ = binNode(ARGS, $1, $3);
-					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); }
+					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); posb += 4;}
 	;
 
 vardecl	: NUMBER ID eqint	{ $$ = binNode(NUMBER, TID($2), $3); $$->info = tINT; }
@@ -136,9 +142,9 @@ eqbody	: DONE			{ $$ = nilNode(NIL); }
 	;
 
 main	: fvars ';' instrs
-		{ $$ = binNode(START, $1, $3); }
+		{ $$ = binNode(START, $1, $3); localVars(posb); }
 	| instrs
-		{ $$ = binNode(START, nilNode(NIL), $1); }
+		{ $$ = binNode(START, nilNode(NIL), $1); localVars(posb);}
 	;
 
 body	: fvars ';' instrs ret

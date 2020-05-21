@@ -1,0 +1,8 @@
+program
+	function public number test do
+		number n;
+		n := 2;
+		return n
+start
+	test!
+end

@@ -1,6 +1,11 @@
 program
+	string x
 start
-	"Olá pessoal\n"!
+$$	"Olá pessoal\n"!
+$$	"hello"="hello"!"\n"!
+$$	"eello"="hello"!"\n"!
+	"Segundo hello world\n"!
+$$	x!
 end
 
 A partir daqui pode haver texto ( de qualquer tipo ), incluindo operadores,
