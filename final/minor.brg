@@ -45,7 +45,7 @@ static void outstr(char *s) {
 
 
 
-
+static int isFUNCTION(Node *n){ return n->info & tFUNC ? 1 : 10000;}
 
 static int onlyINT(Node *n) { return LEFT_CHILD(n)->info & tINT  ? 1 : 10000;} 
 
@@ -75,7 +75,7 @@ static int hasELIF(Node *n){ return ((RIGHT_CHILD(n) != NULL) && (LEFT_CHILD(RIG
 %term STMT=';' EXCL='!' CARD='#' PARE='[' IN='?' ADD='+' SUB='-' MUL='*' DIV='/' MOD='%' POW='^' EQUAL='=' MIN='<' MAX='>' AND='&' OR='|' NOT='~' CURVE='(' COMMA=',' 
 %include "y.tab.h"
 %%
-file: PROGRAM(finaldecls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
+file: PROGRAM(finaldecls, FUNCTION(END(ID, INT), FARGS(NIL, main))) 1 { externs(); fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
 file: MODULE(finaldecls)	1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); }
 
 finaldecls: decls {} 
@@ -93,7 +93,7 @@ decl: FUNCTION(END(ID, INT), FARGS(fvars, eqbody)) 1 {}
 decl: FUNCTION(END(ID, INT), FARGS(NIL, eqbody)) 1 {}
 decl: NIL	
 
-fvar: NUMBER(ID, NIL) 1 { IDnew(tINT, LEFT_CHILD(p)->value.s, -(p->place)); fprintf(yyout, ";---------- %d - %s", -(p->place), LEFT_CHILD(p)->value.s );}
+fvar: NUMBER(ID, NIL) 1 { IDnew(tINT, LEFT_CHILD(p)->value.s, -(p->place)); }
 fvar: STRING(ID, NIL) 1 { IDnew(tSTR, LEFT_CHILD(p)->value.s, -(p->place)); }
 fvar: ARRAY(ID, INTS(vdim, NIL)) 1 { IDnew(tVEC, LEFT_CHILD(p)->value.s, -(p->place)); }
 
@@ -123,7 +123,7 @@ chars: CHARS(chars, char) 1 {}
 
 char: INT 1 { fprintf(yyout, pfIMM, p->value.i); }
 char: CHAR 1 { fprintf(yyout, pfIMM, p->value.i); }
-char: STR 1 { if (p->place != 1) {lbl++; fprintf(yyout, pfGLOBL pfRODATA pfALIGN pfLABEL, mklbl(lbl), pfOBJ, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }}
+char: STR 1 { if (p->place != 1) {lbl++; fprintf(yyout,  pfRODATA pfALIGN pfLABEL, mklbl(lbl)); outstr(p->value.s); fprintf(yyout, pfTEXT pfADDR, mklbl(lbl)); }}
 
 eqvec: NIL 
 eqvec: ints 1 {}
@@ -173,8 +173,11 @@ instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_
 instr: expr 1 {} 
 instr: CARD(expr, lval) 1 {} 
 
-lval: ID 1 { long n; int type = IDfind(p->value.s, (void *)&n); if ( type != -1 ) {fprintf(yyout, pfLOCAL, n);} else {fprintf(yyout, pfADDR, p->value.s);}}
-%!lval: ID 1 { fprintf(yyout, pfADDR, p->value.s);  } 
+lval: ID 10 { long n; int type = IDfind(p->value.s, (void *)&n); if (type >= 1 && type <= 3 ) {fprintf(yyout, pfLOCAL, n);} 
+																else {fprintf(yyout, pfADDR, p->value.s);}
+																}
+							
+lval: ID isFUNCTION { fprintf(yyout, pfCALL, p->value.s);  } 
 lval: PARE(expr, ID) 1 {} 
 
 expr: chars 1 { /*fprintf(yyout, pfADDR);*/ }
@@ -204,19 +207,22 @@ expr: NOT(expr) 1 { fprintf(yyout, pfIMM pfEQ, 0); }
 expr: uminus(expr) 1 { fprintf(yyout, pfNEG); }
 
 ass: expr 1 { /*fprintf(yyout, pfDUP);*/ }
-expr: EQ(ass, lval) 1 { fprintf(yyout, pfSTORE); }
+expr: EQ(ass, lval) 1 { fprintf(yyout, pfSTORE); /*int i; for (i = 0; i < extcnt; i++) { 
+																if (extrns[i] && strcmp(extrns[i], RIGHT_CHILD(p)->value.s) == 0){ extrns[i] = 0; }
+																}*/
+}
 
-expr: CURVE(ID, exprs) 1 {} 
+expr: CURVE(ID, exprs) 1 {fprintf(yyout, pfCALL /*pfTRASH*/, LEFT_CHILD(p)->value.s);} 
 
 exprs: COMMA(expr, NIL) 1 {} 
 exprs: COMMA(expr, exprs) 1 {} 
 %%
 
 void externs(){
-  int i;
+  /*int i;
   for (i = 0; i < extcnt; i++)
     if (extrns[i])
-      fprintf(yyout, pfEXTRN, extrns[i]);
+      fprintf(yyout, pfEXTRN, extrns[i]);*/
 }
 
 extern char **yynames;
@@ -245,6 +251,8 @@ void declFwdPub(int qual, int constante ,Node *var){
 		fprintf(yyout, pfGLOBL, LEFT_CHILD(var)->value.s, pfOBJ);
 	} else if (qual == tFWD) {
 		/*extrns[]*/
+		extrns[extcnt++] = dupstr(LEFT_CHILD(var)->value.s);
+		fprintf(yyout, ";----------------------- -%d-", extcnt);
 	}
 
 	if (var->attrib == NUMBER) {
@@ -301,9 +309,5 @@ void functionDecl(char *name, int qual,int enter){
 	} 
 }
 
-void declFvar(int i, char *name, int pos ,int flag){
-	if (flag == 1){
-		/*IDnew(i, name, -pos);*/
-	}
-}
+void declFvar(int i, char *name, int pos ,int flag){}
 

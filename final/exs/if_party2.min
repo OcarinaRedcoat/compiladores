@@ -1,6 +1,7 @@
 program
-    number x := 2
+    number x
 start
+		x := 2;
     if x = 0 then
         "a"!
     elif x = 1 then
