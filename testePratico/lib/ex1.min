@@ -1,0 +1,4 @@
+program
+       public const number id := 1 2,3 
+       start
+end

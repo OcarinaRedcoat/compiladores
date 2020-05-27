@@ -94,7 +94,7 @@ decl: FUNCTION(END(ID, INT), FARGS(fvars, eqbody)) 1 { }
 decl: FUNCTION(END(ID, INT), FARGS(NIL, eqbody)) 1 {  }
 decl: NIL	
 
-fvar: NUMBER(ID, NIL) 1 { IDnew(tINT, LEFT_CHILD(p)->value.s, -(p->place)); LEFT_CHILD(p)->place = 10; fprintf(yyout, ";------- -%s-%d-",LEFT_CHILD(p)->value.s ,-(p->place)); /* FIXME algures se a mesma variavel local for declarada noutra funcao da erro */ }
+fvar: NUMBER(ID, NIL) 1 { IDnew(tINT, LEFT_CHILD(p)->value.s, -(p->place)); LEFT_CHILD(p)->place = 10;  /* FIXME algures se a mesma variavel local for declarada noutra funcao da erro */ }
 fvar: STRING(ID, NIL) 1 { IDnew(tSTR, LEFT_CHILD(p)->value.s, -(p->place)); LEFT_CHILD(p)->place = 10; /* FIXME algures se a mesma variavel local for declarada noutra funcao da erro */ }
 fvar: ARRAY(ID, INTS(vdim, NIL)) 1 { IDnew(tVEC, LEFT_CHILD(p)->value.s, -(p->place)); LEFT_CHILD(p)->place = 10; /* FIXME algures se a mesma variavel locar for declarada noutra funcao da erro */ }
 
@@ -141,7 +141,7 @@ main: START(NIL, instrs) 1 {}
 body: START(fvars , STMT(instrs, ret)) 1 {}
 body: START(NIL , STMT(instrs, ret)) 1 {}
 
-ret: RETURN(NIL)  1 {}
+ret: RETURN(NIL)  1 {fprintf(yyout, pfLEAVE pfRET);} 
 ret: RETURN(expr) 1 {fprintf(yyout, pfPOP pfLEAVE pfRET);} 
 ret: NIL
 
@@ -172,7 +172,7 @@ instr: EXCL(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_
 instr: EXCL(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 
 
 instr: expr 1 {} 
-instr: CARD(expr, lval) 1 { fprint(yyout, pfALLOC); } 
+instr: CARD(expr, lval) 1 { fprintf(yyout, pfALLOC); } 
 
 lval: ID 10 { p->place = 1; long n; int type = IDfind(p->value.s, (void *)&n); if (n <= 0/* >= 1 && type <= 3*/ ) {fprintf(yyout, pfLOCAL, n);} 
 																else {fprintf(yyout, pfADDR, p->value.s);} }

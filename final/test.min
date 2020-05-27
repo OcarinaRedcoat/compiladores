@@ -1,0 +1,6 @@
+program
+start
+	number x;
+	x := 45;
+	x!
+end

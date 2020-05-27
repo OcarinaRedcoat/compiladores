@@ -1,0 +1,4 @@
+module
+	function public string rotina do
+		return "helloworld"	
+end

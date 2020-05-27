@@ -79,9 +79,9 @@ fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT;
 	;
 
 fvars	: fvar			{ $$ = binNode(ARGS, nilNode(NIL), $1);
-					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); if(varf == 0) { posb -= 4;  } else {posb += 4;} $1->place = posb; }
+					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); posb += 4; $1->place = posb; }
 	| fvars ';' fvar	{ $$ = binNode(ARGS, $1, $3);
-					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); if(varf == 0) { posb -= 4;  } else {posb += 4;} $3->place = posb;}
+					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); posb += 4; $3->place = posb;}
 	;
 
 vardecl	: NUMBER ID eqint	{ $$ = binNode(NUMBER, TID($2), $3); $$->info = tINT; }
