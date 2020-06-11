@@ -22,11 +22,12 @@ static int ret, cycle;
 %token <s> ID STR
 %token PROGRAM MODULE END PUBLIC FORWARD STRING NUMBER ARRAY FUNCTION VOID CONST
 %token IF THEN FI ELIF ELSE RETURN START FOR UNTIL STEP DO DONE REPEAT STOP
+%token ASSERT
 
 %type<n> lval	decls	gdecls	decl	vardecl	fvar	fvars
 %type<i> qualif	const	type	ftype	vdim
 %type<n> eqint	eqstr	chars	char	eqvec
-%type<n> ints	eqbody	body	ret	loop	instrs
+%type<n> ints	eqbody	body	ret	loop	instrs assert
 %type<n> instr	elifs	else	expr	exprs	block	main
 
 %token FARGS CHARS INTS ADDR VAR ARGS DECL NIL
@@ -35,6 +36,7 @@ static int ret, cycle;
 %left '|'
 %left '&'
 %nonassoc '~'
+%right XOR
 %left '=' NE
 %left '<' '>' GE LE
 %left '+' '-'
@@ -171,7 +173,9 @@ instr	: IF expr THEN block elifs else FI
 	| expr '!'		{ $$ = uniNode('!', $1); isPrint($1); }
 	| expr ';'		{ $$ = $1; }
 	| lval '#' expr ';'	{ $$ = binNode('#', $3, $1); isAlloc($1, $3); }
+	| ASSERT expr ';'		{ $$ = uniNode(':',$2); }
 	;
+
 
 elifs	:			{ $$ = nilNode(NIL); }
 	| elifs ELIF expr THEN block
@@ -198,6 +202,7 @@ expr	: chars			{ $$ = $1; }
 	| expr '%' expr		{ $$ = binNode('%', $1, $3); $$->info = isInt($$, "%"); }
 	| expr '^' expr		{ $$ = binNode('^', $3, $1); $$->info = isInt($$, "^"); }
 	| expr '=' expr		{ $$ = binNode('=', $1, $3); $$->info = isCmp($$, "="); }
+	| expr XOR expr		{ $$ = binNode(XOR, $1, $3); $$->info = isInt($$, "xor"); }
 	| expr NE expr		{ $$ = binNode(NE, $1, $3); $$->info = isCmp($$, "~="); }
 	| expr GE expr		{ $$ = binNode(GE, $1, $3); $$->info = isCmp($$, ">="); }
 	| expr LE expr		{ $$ = binNode(LE, $1, $3); $$->info = isCmp($$, "<="); }

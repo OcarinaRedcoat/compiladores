@@ -1,5 +1,0 @@
-program
-	function forward number factorial number n done
-start
-	factorial(4)!
-end

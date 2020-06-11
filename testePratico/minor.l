@@ -21,6 +21,8 @@ H [A-Fa-f0-9]
 <CODE>">="		return GE;
 <CODE>"~="		return NE;
 <CODE>":="		return EQ;
+<CODE>"xor"		return XOR;
+<CODE>"assert"		return ASSERT;
 <CODE>"$$".*		;
 <CODE>\$[^\$]+\$	;
 <CODE>"public"		return PUBLIC;

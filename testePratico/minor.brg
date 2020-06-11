@@ -32,6 +32,7 @@ static char *mkfunc(char *s) {
 	strcat(buf, s);
 	return buf;
 }
+
 static int mkid(Node *p) {
 	Node *addr;
 	int type = IDfind(p->value.s, (void**)&addr);
@@ -41,6 +42,7 @@ static int mkid(Node *p) {
 		fprintf(yyout, pfADDR, p->value.s);
 	return tTYPE(type);
 }
+
 static void mkstr(char *s) {
 	int l = ++lbl;
 	fprintf(yyout, pfDATA pfLABEL, mklbl(l));
@@ -48,6 +50,7 @@ static void mkstr(char *s) {
 		fprintf(yyout, pfCHAR, (unsigned char)*s++);
 	fprintf(yyout, pfCHAR pfTEXT pfADDR, 0, mklbl(l));
 }
+
 static int isFunc(NODEPTR_TYPE p) {
 	return (p->info & tFUNC) ? 1 : 1000; }
 
@@ -66,29 +69,44 @@ static int onlySTR(Node *n) { return LEFT_CHILD(n)->info & tSTR ? 1 : 10000; }
 %%
 file: MODULE(decls)
 file: PROGRAM(decls,func)
+
+
 decls: NIL
 decls: DECL(decls,decl)
 decl: NIL
+
+%! ----------------------------------------------- FUNCAO SEM CORPO
 decl: FUNCTION(END,FARGS(fargs,NIL))	1 { fprintf(yyout, pfEXTRN, mkfunc(LEFT_CHILD(LEFT_CHILD(p))->value.s)); }
+
+
 fargs: ARGS(fargs,farg)
 fargs: NIL
 farg: NUMBER(ID,NIL)
 farg: STRING(ID,NIL)
+
+
 decl: func
 decl: VAR(decl)
 decl: NUMBER(id,NIL)	1 { fprintf(yyout, pfINTEGER, 0); }
 decl: NUMBER(id,INT)	1 { fprintf(yyout, pfINTEGER, RIGHT_CHILD(p)->value.i); }
+
 id: ID			1 { fprintf(yyout, pfDATA pfALIGN pfLABEL, p->value.s); }
 
+%! -----------------------------------------------  FUNCAO COM CORPO
 func: FUNCTION(end,FARGS(eargs,START(enter,stmt)))	1 { fprintf(yyout, pfIMM pfPOP pfLEAVE pfRET, 0); IDpop(); }
+
 end: END		1 { if (RIGHT_CHILD(p)->value.i & tPUB) fprintf(yyout, pfGLOBL, mkfunc(LEFT_CHILD(p)->value.s), pfFUNC); fprintf(yyout, pfTEXT pfALIGN pfLABEL, mkfunc(LEFT_CHILD(p)->value.s)); IDpush(); }
+
 eargs: ARGS(eargs,farg)	0 { Node *n = nilNode(VOID); n->place = ++cnt; IDnew(RIGHT_CHILD(p)->info, LEFT_CHILD(RIGHT_CHILD(p))->value.s, n); }
+
 eargs: NIL		0 { cnt = 1; }
 enter: vars		1 { fprintf(yyout, pfENTER, -cnt * pfWORD); }
+
 vars: ARGS(vars,farg)	0 { Node *n = nilNode(VOID); n->place = --cnt; IDnew(RIGHT_CHILD(p)->info, LEFT_CHILD(RIGHT_CHILD(p))->value.s, n); }
 vars: NIL		0 { cnt = 0; }
 
 
+%! --------------------------------- IF/ELIF/ELSE  --------------------------------------------
 
 stmt: FI(THEN(IF(cond, stmt), NIL), NIL) 1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(LEFT_CHILD(p)))->place)); }
 cond: expr 1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(p->place)); }
@@ -102,10 +120,11 @@ stmt: FI(THEN(if, elifs), stmt) 1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEF
 elifs: NIL 
 elifs: ELIF(elifs, if) 1 { fprintf(yyout, pfLABEL, mklbl(RIGHT_CHILD(p)->place)); } 
 
+%! --------------------------------- IF/ELIF/ELSE  --------------------------------------------
 
 
 
-
+stmt: ASSERT(expr) { /*exit();*/}
 
 stmt: STMT(stmt,stmt)	0 { char s[20]; sprintf(s, "line %d", p->line); fprintf(yyout, pfCOMM, s); }
 stmt: NIL
@@ -113,24 +132,33 @@ stmt: RETURN(NIL)	2 { fprintf(yyout, pfLEAVE pfRET); }
 stmt: RETURN(expr)	3 { fprintf(yyout, pfPOP pfLEAVE pfRET); }
 stmt: STOP		1 { fprintf(yyout, pfJMP, mklbl(stp[stpn-1])); }
 
-
+%! --------------------------------- ! STR INT --------------------------------------------
 stmt: PRINT(expr) onlyINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_printi", "_printi", 4);} 
 stmt: PRINT(expr) onlySTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH, "_prints", "_prints", 4);} 
+%! --------------------------------- ! STR INT --------------------------------------------
 
+
+
+%! --------------------------------- COMENTARIO --------------------------------------------
 %!stmt: PRINT(expr)	2 { fprintf(yyout, pfEXTRN pfCALL pfTRASH, U_"printi", U_"printi", pfWORD); }
 %!stmt: PRINT(str)	3 { fprintf(yyout, pfEXTRN pfCALL pfTRASH, U_"prints", U_"prints", pfWORD); }
+%!expr: str 1000
+%! --------------------------------- COMENTARIO --------------------------------------------
 
 
 
-
-expr: str 1000
-str : CHARS(NIL,STR)	2 { mkstr(RIGHT_CHILD(p)->value.s); }
 stmt: expr		1 { fprintf(yyout, pfTRASH, pfWORD); }
 
+
+%! --------------------------------- COMENTARIO --------------------------------------------
 %!stmt: FI(then,stmt)	1 { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place)); }
 %!then: THEN(if, NIL)
 %!if: IF(cond,stmt)	1 { p->place = ++lbl; fprintf(yyout, pfJMP pfLABEL, mklbl(lbl), mklbl(LEFT_CHILD(p)->place)); }
 %!cond: expr		1 { p->place = ++lbl; fprintf(yyout, pfJZ, mklbl(lbl)); }
+%! --------------------------------- COMENTARIO --------------------------------------------
+
+
+
 
 stmt: FOR(until,step)	1 { fprintf(yyout, pfTRASH pfJMP pfLABEL, pfWORD, mklbl(LEFT_CHILD(LEFT_CHILD(p))->place), mklbl(LEFT_CHILD(p)->place)); stpn--; }
 until: UNTIL(begin,expr) 2 { stp[stpn++] = p->place = ++lbl; fprintf(yyout, pfJNZ, mklbl(lbl)); }
@@ -138,30 +166,33 @@ begin: expr		1 { p->place = ++lbl; fprintf(yyout, pfTRASH pfLABEL, pfWORD, mklbl
 step: STEP(stmt,expr)	1 {/* fprintf(yyout, pfTRASH, pfWORD);*/ }
 
 lv: ID			1 { mkid(p); }
+
+%! --------------------------------- EXPRESSOES --------------------------------------------
+
 expr: EQ(dup,lv)	1 { fprintf(yyout, pfSTORE); }
 dup: expr		1 { fprintf(yyout, pfDUP); }
 expr: lv		1 { fprintf(yyout, pfLOAD); }
-
-
 expr: CHARS(NIL,INT)	1 { fprintf(yyout, pfIMM, RIGHT_CHILD(p)->value.i); }
+expr: CHARS(NIL,STR)	2 { mkstr(RIGHT_CHILD(p)->value.s); }
 expr: ID		isFunc { fprintf(yyout, pfCALL pfPUSH, mkfunc(p->value.s)); }
 expr: INPUT		1 { fprintf(yyout, pfEXTRN pfCALL pfPUSH, U_"readi", U_"readi"); }
 expr: ADDR(lv)
 expr: ADD(expr,expr)	1 { fprintf(yyout, pfADD); }
 expr: SUB(expr,expr)	1 { fprintf(yyout, pfSUB); }
-
 expr: MUL(expr, expr) isINT { fprintf(yyout, pfMUL); } 
 expr: DIV(expr, expr) isINT { fprintf(yyout, pfDIV); } 
 expr: MOD(expr, expr) isINT { fprintf(yyout, pfMOD); } 
 expr: POW(expr, expr) isINT { fprintf(yyout, pfEXTRN pfCALL pfTRASH pfPUSH, "_pow", "_pow", 4);} 
-
 expr: NE(expr, expr) isINT { fprintf(yyout, pfNE); } 
 expr: NE(expr, expr) isSTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH pfPUSH, "_strncmp", "_strncmp", 4);} 
-
 expr: EQUAL(expr, expr) isINT { fprintf(yyout, pfEQ); }
 expr: EQUAL(expr, expr) isSTR { fprintf(yyout, pfEXTRN pfCALL pfTRASH pfPUSH, "_strcmp", "_strcmp", 4);} 
-%!expr: EQUAL(expr,expr)	1 { fprintf(yyout, pfEQ); }
 
+%! --------------------------------- COMENTARIO --------------------------------------------
+%!expr: EQUAL(expr,expr)	1 { fprintf(yyout, pfEQ); }
+%! --------------------------------- COMENTARIO --------------------------------------------
+
+expr: XOR(expr, expr) 1 { fprintf(yyout, pfXOR); } 
 expr: GE(expr, expr) 1 { fprintf(yyout, pfGE); } 
 expr: LE(expr, expr) 1 { fprintf(yyout, pfLE); } 
 expr: AND(and, expr) isINT { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(p)->place)); } 
@@ -170,13 +201,14 @@ expr: OR(or, expr) isINT { fprintf(yyout, pfLABEL, mklbl(LEFT_CHILD(p)->place));
 or:	expr		1 { p->place = ++lbl; fprintf(yyout, pfDUP pfJNZ pfTRASH, mklbl(p->place), 4); }
 expr: NOT(expr) 1 { fprintf(yyout, pfIMM pfEQ, 0); } 
 expr: uminus(expr) 1 { fprintf(yyout, pfNEG); }
-
-
 expr: GT(expr,expr)	1 { fprintf(yyout, pfGT); }
 expr: LT(expr,expr)	1 { fprintf(yyout, pfLT); }
 expr: CALL(ID,args)	3 { fprintf(yyout, pfCALL pfTRASH pfPUSH, mkfunc(LEFT_CHILD(p)->value.s), trash * pfWORD); }
+
+
 args: ARG(expr,args)	1 { trash += 1; }
 args: NIL	1 { trash = 0; }
+
 %%
 extern char **yynames;
 extern int trace, errors, debugNode;

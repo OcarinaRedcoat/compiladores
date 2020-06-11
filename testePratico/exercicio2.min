@@ -1,0 +1,4 @@
+program
+start
+	? xor ?!"\n"!
+end

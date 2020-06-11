@@ -7,7 +7,7 @@ AS=nasm -felf32 # assembler command
 LD=ld -melf_i386 # loader command
 
 RUNTIME=lib$(LIB).a # stand-alone runtime
-SRC=factorial.min rotina.min
+SRC=exemplo.min
 EXE=$(SRC:%.min=%)
 
 all:: compiler $(EXE) cp_run
