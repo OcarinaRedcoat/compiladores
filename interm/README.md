@@ -21,4 +21,3 @@ To run:
 ./minor
 ``
 
-Grade: 11.6

@@ -2,6 +2,7 @@ LANG=minor
 EXT=min# file extension: .$(EXT)
 LIB=lib# compiler library directory
 UTIL=util# compiler library: lib$(LIB).a
+MINRUN=min_run# runtime directory
 RUN=run# runtime directory
 EXS=exs# examples directory
 CC=gcc
@@ -12,11 +13,11 @@ LDLIBS=lib$(LANG).a
 
 $(LANG): $(LANG).y $(LANG).l $(LANG).brg
 	make -C $(LIB)
-	make -C $(RUN)
 	byacc -dv $(LANG).y
 	flex -dl $(LANG).l
 	pburg -T $(LANG).brg
 	$(LINK.c) -w -g -o $(LANG) $(ARCH) -I$(LIB) lex.yy.c y.tab.c yyselect.c -L$(LIB) -l$(UTIL)
+	make -C $(MINRUN)
 	make -C $(RUN)
 	-cp $(RUN)/libminor.a $(LDLIBS)
 
@@ -31,4 +32,6 @@ examples:: $(LANG)
 clean::
 	make -C $(LIB) clean
 	make -C $(RUN) clean
-	rm -f *.o exs/*.o $(LANG) $(LDLIBS) lex.yy.c y.tab.c y.tab.h y.output yyselect.c exs/*.asm *~ a.out
+	make -C $(EXS) clean
+	make -C $(MINRUN) clean
+	rm -f *.o exs/*.o $(LANG) $(LDLIBS) lex.yy.c y.tab.c y.tab.h y.output yyselect.c exs/*.asm *~ a.out *.o *.asm

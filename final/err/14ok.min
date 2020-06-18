@@ -1,5 +1,0 @@
-program
-	number x := 12
-start
-	x := 21;
-end

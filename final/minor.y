@@ -7,14 +7,6 @@
 #include "minor.h"
 
 int yylex(), yyparse(), yyerror(const char*), evaluate(Node*); /* parsers */
-
-void localVars(int);
-void declFwdPub(int, int, Node*);
-void declFvar(int, char *, int, int);
-static int posb;
-static int varf;
-void functionDecl(char*,int, int);
-
 static int isId(char*,Node*,int*), isInt(Node*,char*), isAddSub(Node*,char*);
 static int isCmp(Node*,char*), isUniInt(Node*,char*), isAddr(Node*);
 static int isAssign(Node *n), isCall(char*,Node*,Node*);
@@ -30,11 +22,12 @@ static int ret, cycle;
 %token <s> ID STR
 %token PROGRAM MODULE END PUBLIC FORWARD STRING NUMBER ARRAY FUNCTION VOID CONST
 %token IF THEN FI ELIF ELSE RETURN START FOR UNTIL STEP DO DONE REPEAT STOP
+%token ASSERT
 
 %type<n> lval	decls	gdecls	decl	vardecl	fvar	fvars
 %type<i> qualif	const	type	ftype	vdim
 %type<n> eqint	eqstr	chars	char	eqvec
-%type<n> ints	eqbody	body	ret	loop	instrs
+%type<n> ints	eqbody	body	ret	loop	instrs assert
 %type<n> instr	elifs	else	expr	exprs	block	main
 
 %token FARGS CHARS INTS ADDR VAR ARGS DECL NIL
@@ -43,6 +36,7 @@ static int ret, cycle;
 %left '|'
 %left '&'
 %nonassoc '~'
+%right XOR
 %left '=' NE
 %left '<' '>' GE LE
 %left '+' '-'
@@ -51,7 +45,7 @@ static int ret, cycle;
 %nonassoc uminus
 
 %%
-file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); posb = 0; varf = 1;} main END
+file	: PROGRAM decls START { func="main"; ret=tPUB + tINT + tFUNC; IDpush(); } main END
 	 { IDpop(); evaluate(binNode(PROGRAM, $2, binNode(FUNCTION, binNode(END, TID(func), TINT(ret)), binNode(FARGS, nilNode(NIL), $5)))); }
 	| MODULE decls END
 	 { evaluate(uniNode(MODULE, $2)); }
@@ -65,23 +59,23 @@ gdecls	: gdecls ';' decl	{ $$ = binNode(DECL, $1, $3); }
 	| decl			{ $$ = binNode(DECL, nilNode(NIL), $1); }
 	;
 
-decl	: qualif const vardecl { $$ = uniNode(VAR, $3); $$->info = $1+$2+$3->info; isCte($$); declFwdPub($1, $2,$3); }
-	| FUNCTION qualif ftype ID { isFunc(func = $4, ret = $2+$3+tFUNC); IDpush(); varf = 0;} fvars { IDchange(ret, $4, $6, 1); posb = 0; varf = 1;} eqbody
-		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, $6, $8)); IDpop(); isFwd(func, ret, $8); functionDecl($4, $2, posb);}
-	| FUNCTION qualif ftype ID { isFunc( func = $4, ret = $2+$3+tFUNC); IDpush(); posb = 0; varf = 1; } eqbody
-		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, nilNode(NIL), $6)); IDpop(); isFwd(func, ret, $6); functionDecl($4, $2, posb); }
+decl	: qualif const vardecl { $$ = uniNode(VAR, $3); $$->info = $1+$2+$3->info; isCte($$); }
+	| FUNCTION qualif ftype ID { isFunc(func = $4, ret = $2+$3+tFUNC); IDpush(); } fvars { IDchange(ret, $4, $6, 1); } eqbody
+		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, $6, $8)); IDpop(); isFwd(func, ret, $8); }
+	| FUNCTION qualif ftype ID { isFunc( func = $4, ret = $2+$3+tFUNC); IDpush(); } eqbody
+		{ $$ = binNode(FUNCTION, binNode(END, TID($4), TINT(ret)), binNode(FARGS, nilNode(NIL), $6)); IDpop(); isFwd(func, ret, $6); }
 	| error	{ $$ = nilNode(NIL); }
 	;
 
-fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT;}
+fvar	: NUMBER ID	{ $$ = binNode(NUMBER, TID($2), nilNode(NIL)); $$->info = tINT; }
 	| STRING ID	{ $$ = binNode(STRING, TID($2), nilNode(NIL)); $$->info = tSTR; }
 	| ARRAY ID vdim	{ $$ = binNode(ARRAY, TID($2), binNode(INTS, TINT($3), nilNode(NIL))); $$->info = tVEC; }
 	;
 
 fvars	: fvar			{ $$ = binNode(ARGS, nilNode(NIL), $1);
-					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); if(varf == 0) { posb -= 4;  } else {posb += 4;} $1->place = posb; }
+					IDnew($1->info, $1->SUB(0)->value.s, $1->SUB(1)); }
 	| fvars ';' fvar	{ $$ = binNode(ARGS, $1, $3);
-					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); if(varf == 0) { posb -= 4;  } else {posb += 4;} $3->place = posb;}
+					IDnew($3->info, $3->SUB(0)->value.s, $3->SUB(1)); }
 	;
 
 vardecl	: NUMBER ID eqint	{ $$ = binNode(NUMBER, TID($2), $3); $$->info = tINT; }
@@ -144,9 +138,9 @@ eqbody	: DONE			{ $$ = nilNode(NIL); }
 	;
 
 main	: fvars ';' instrs
-		{ $$ = binNode(START, $1, $3); localVars(posb); }
+		{ $$ = binNode(START, $1, $3); }
 	| instrs
-		{ $$ = binNode(START, nilNode(NIL), $1); localVars(posb);}
+		{ $$ = binNode(START, nilNode(NIL), $1); }
 	;
 
 body	: fvars ';' instrs ret
@@ -179,7 +173,9 @@ instr	: IF expr THEN block elifs else FI
 	| expr '!'		{ $$ = uniNode('!', $1); isPrint($1); }
 	| expr ';'		{ $$ = $1; }
 	| lval '#' expr ';'	{ $$ = binNode('#', $3, $1); isAlloc($1, $3); }
+	| ASSERT expr ';'		{ $$ = uniNode(':',$2); }
 	;
+
 
 elifs	:			{ $$ = nilNode(NIL); }
 	| elifs ELIF expr THEN block
@@ -206,6 +202,7 @@ expr	: chars			{ $$ = $1; }
 	| expr '%' expr		{ $$ = binNode('%', $1, $3); $$->info = isInt($$, "%"); }
 	| expr '^' expr		{ $$ = binNode('^', $3, $1); $$->info = isInt($$, "^"); }
 	| expr '=' expr		{ $$ = binNode('=', $1, $3); $$->info = isCmp($$, "="); }
+	| expr XOR expr		{ $$ = binNode(XOR, $1, $3); $$->info = isInt($$, "xor"); }
 	| expr NE expr		{ $$ = binNode(NE, $1, $3); $$->info = isCmp($$, "~="); }
 	| expr GE expr		{ $$ = binNode(GE, $1, $3); $$->info = isCmp($$, ">="); }
 	| expr LE expr		{ $$ = binNode(LE, $1, $3); $$->info = isCmp($$, "<="); }

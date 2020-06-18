@@ -1,9 +1,0 @@
-program
-	function number test do
-		number x;
-		x := 5;
-		return x
-start
-	number q;
-	test!
-end

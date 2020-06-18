@@ -1,3 +1,0 @@
-program start
-    (104 101 108 108 111 ' ' "world" 0x0a)!
-end

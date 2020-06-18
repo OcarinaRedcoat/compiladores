@@ -1,5 +1,0 @@
-program
-	number n := 1, 2
-start
-	n! "\n"!
-end

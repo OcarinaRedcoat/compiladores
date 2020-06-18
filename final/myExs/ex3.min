@@ -1,6 +1,0 @@
-program
-	number  x
-start
-	x := 5;
-	x + 5 !
-end

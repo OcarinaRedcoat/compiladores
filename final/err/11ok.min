@@ -1,6 +1,0 @@
-program
-	string s := "hello";
-	string v := "world"
-start
-	v = s!
-end

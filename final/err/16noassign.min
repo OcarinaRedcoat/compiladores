@@ -1,6 +1,0 @@
-program
-	array v[3] := 1, 2, 3;
-	string s := "hello"
-start
-	s := v;
-end

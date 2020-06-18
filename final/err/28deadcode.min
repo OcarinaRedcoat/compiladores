@@ -1,6 +1,0 @@
-program start
-	if ? then
-		return 1
-		"dead code!\n"!
-	fi
-end

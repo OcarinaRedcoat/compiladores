@@ -1,4 +1,0 @@
-module
-	function forward number argc do return 0
-end
-forward declaration can not be initialized!

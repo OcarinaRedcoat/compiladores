@@ -1,8 +1,0 @@
-program
-
-	number n := 1;
-	number x := 2;
-  string l := "qwr"
-	start
-	3 + 4;
-end 

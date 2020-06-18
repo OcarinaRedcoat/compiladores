@@ -1,3 +1,0 @@
-program start
-    ("hello " "world" "\n")!
-end

@@ -1,6 +1,0 @@
-program
-	forward number x;
-	forward number y
-start
-	x := 5;
-end
